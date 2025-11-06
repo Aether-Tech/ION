@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "ION",
+    "slug": "ion-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aether.ion"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.aether.ion"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Precisamos de acesso à galeria de fotos para selecionar imagens e enviá-las na conversa.",
+          "cameraPermission": "Precisamos de acesso à câmera para tirar fotos e enviá-las na conversa."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Precisamos de acesso ao microfone para gravar mensagens de áudio."
+        }
+      ]
+    ],
+    "scheme": "ion"
+  }
+}

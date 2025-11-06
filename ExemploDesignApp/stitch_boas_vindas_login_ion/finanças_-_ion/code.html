@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ION - Finanças</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#2b6cee",
+            "background-light": "#f6f6f8",
+            "background-dark": "#101622",
+            "ion-blue": "#00BFFF"
+          },
+          fontFamily: {
+            "display": ["Space Grotesk", "sans-serif"]
+          },
+          borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      background: linear-gradient(180deg, #0A192F 0%, #000000 100%);
+    }
+    .glassmorphism {
+      background: rgba(28, 31, 39, 0.5);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 191, 255, 0.1);
+    }
+    .material-symbols-outlined {
+      font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col text-white group/design-root overflow-x-hidden">
+<!-- Top App Bar -->
+<header class="flex items-center p-4 pb-2 justify-between z-10 sticky top-0 bg-transparent">
+<div class="flex size-12 shrink-0 items-center">
+<span class="material-symbols-outlined text-white" style="font-size: 28px;">arrow_back_ios_new</span>
+</div>
+<h1 class="text-white text-xl font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Finanças</h1>
+<div class="flex w-12 items-center justify-end">
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-12 bg-transparent text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 p-0">
+<span class="material-symbols-outlined text-white" style="font-size: 28px;">settings</span>
+</button>
+</div>
+</header>
+<main class="flex-1 px-4 py-6 space-y-6">
+<!-- Charts Section -->
+<div class="flex flex-col gap-6">
+<!-- Card 1: Gastos por Categoria -->
+<div class="flex min-w-72 flex-1 flex-col gap-2 p-5 rounded-xl glassmorphism">
+<p class="text-white/80 text-base font-medium leading-normal">Gastos por Categoria</p>
+<p class="text-white tracking-light text-[32px] font-bold leading-tight truncate">R$ 2.450,80</p>
+<div class="flex gap-2 items-center">
+<p class="text-white/60 text-base font-normal leading-normal">Últimos 30 dias</p>
+<p class="text-red-500 text-base font-medium leading-normal flex items-center gap-1">
+<span class="material-symbols-outlined text-base">arrow_downward</span>
+              15%
+            </p>
+</div>
+<div class="grid min-h-[180px] grid-flow-col gap-6 grid-rows-[1fr_auto] items-end justify-items-center px-3 pt-4">
+<div class="w-full h-[60%] bg-gradient-to-t from-ion-blue/50 to-ion-blue rounded-t"></div>
+<p class="text-white/60 text-[13px] font-bold leading-normal tracking-[0.015em]">Comida</p>
+<div class="w-full h-[40%] bg-gradient-to-t from-ion-blue/50 to-ion-blue rounded-t"></div>
+<p class="text-white/60 text-[13px] font-bold leading-normal tracking-[0.015em]">Transp.</p>
+<div class="w-full h-full bg-gradient-to-t from-ion-blue/50 to-ion-blue rounded-t"></div>
+<p class="text-white/60 text-[13px] font-bold leading-normal tracking-[0.015em]">Lazer</p>
+<div class="w-full h-[20%] bg-gradient-to-t from-ion-blue/50 to-ion-blue rounded-t"></div>
+<p class="text-white/60 text-[13px] font-bold leading-normal tracking-[0.015em]">Casa</p>
+</div>
+</div>
+<!-- Card 2: Evolução dos Gastos -->
+<div class="flex min-w-72 flex-1 flex-col gap-2 p-5 rounded-xl glassmorphism">
+<p class="text-white/80 text-base font-medium leading-normal">Evolução dos Gastos</p>
+<p class="text-white tracking-light text-[32px] font-bold leading-tight truncate">R$ 5.120,50</p>
+<div class="flex gap-2 items-center">
+<p class="text-white/60 text-base font-normal leading-normal">Últimos 6 meses</p>
+<p class="text-green-500 text-base font-medium leading-normal flex items-center gap-1">
+<span class="material-symbols-outlined text-base">arrow_upward</span>
+              8%
+            </p>
+</div>
+<div class="flex min-h-[180px] flex-1 flex-col gap-8 py-4">
+<svg fill="none" height="148" preserveaspectratio="none" viewbox="-3 0 478 150" width="100%" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25V149H326.769H0V109Z" fill="url(#paint0_linear_1131_5935)"></path>
+<path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25" stroke="#00BFFF" stroke-linecap="round" stroke-width="3"></path>
+<defs>
+<lineargradient gradientunits="userSpaceOnUse" id="paint0_linear_1131_5935" x1="236" x2="236" y1="1" y2="149">
+<stop stop-color="#00BFFF" stop-opacity="0.3"></stop>
+<stop offset="1" stop-color="#00BFFF" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+</svg>
+<div class="flex justify-around">
+<p class="text-white/60 text-[13px] font-bold leading-normal tracking-[0.015em]">Jan</p>
+<p class="text-white/60 text-[13px] font-bold leading-normal tracking-[0.015em]">Fev</p>
+<p class="text-white/60 text-[13px] font-bold leading-normal tracking-[0.015em]">Mar</p>
+<p class="text-white/60 text-[13px] font-bold leading-normal tracking-[0.015em]">Abr</p>
+<p class="text-white/60 text-[13px] font-bold leading-normal tracking-[0.015em]">Mai</p>
+<p class="text-white/60 text-[13px] font-bold leading-normal tracking-[0.015em]">Jun</p>
+</div>
+</div>
+</div>
+</div>
+<!-- AI Insight Message -->
+<div class="flex items-end gap-3 py-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-10 h-10 shrink-0 border-2 border-ion-blue/50" data-alt="ION AI Assistant avatar with a blue gradient" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCFcEwUYfyJe5euz5FckBjvlqKNXLDzg7WaKESwnv7_fBxgXM-D0lqWL9CUTdr0BfTpQ-HNp5oytHE0_ZW6cufvwHmsbKh78C_sNusswQ3010Ok31mims2XRCuFVJUc86FRJc0A6et46K6SJVOeWV6gCXFwiv3_GwP95HsqHX6X6iYVKiAQJyfXmm3wQw2CBlEUn2Y2N6idUvQ0_FwVWp0R0tVCA1kCJnnzbmf00nw6KT9hGImm6YkBCErgn9fqYY3XtKZECW42jWo");'></div>
+<div class="flex flex-1 flex-col gap-1 items-start">
+<p class="text-white/80 text-[13px] font-medium leading-normal max-w-[360px]">ION</p>
+<p class="text-base font-normal leading-normal flex max-w-[360px] rounded-xl px-4 py-3 bg-ion-blue text-black">Você gastou 15% menos esta semana 👏</p>
+</div>
+</div>
+</main>
+<!-- FAB Wrapper to reserve space -->
+<div class="h-28"></div>
+<!-- Floating Action Button -->
+<div class="fixed bottom-24 w-full px-5 pb-5 z-10">
+<button class="flex w-full max-w-md mx-auto cursor-pointer items-center justify-center overflow-hidden rounded-xl h-14 px-5 bg-ion-blue text-black text-base font-bold leading-normal tracking-[0.015em] min-w-0 gap-3 shadow-lg shadow-ion-blue/30">
+<span class="material-symbols-outlined text-black">chat</span>
+<span class="truncate">Conversar com a ION sobre finanças</span>
+</button>
+</div>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 z-20">
+<div class="flex border-t border-white/10 px-4 pb-3 pt-2" style="background: rgba(10, 25, 47, 0.8); backdrop-filter: blur(10px);">
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 text-white/60" href="#">
+<span class="material-symbols-outlined flex h-8 items-center justify-center text-white/60">home</span>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Início</p>
+</a>
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 text-white/60" href="#">
+<span class="material-symbols-outlined flex h-8 items-center justify-center text-white/60">check_circle</span>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Tarefas</p>
+</a>
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 rounded-full text-ion-blue" href="#">
+<span class="material-symbols-outlined flex h-8 items-center justify-center" style="font-variation-settings: 'FILL' 1;">wallet</span>
+<p class="text-ion-blue text-xs font-medium leading-normal tracking-[0.015em]">Finanças</p>
+</a>
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 text-white/60" href="#">
+<span class="material-symbols-outlined flex h-8 items-center justify-center text-white/60">forum</span>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Chat</p>
+</a>
+</div>
+</nav>
+</div>
+</body></html>

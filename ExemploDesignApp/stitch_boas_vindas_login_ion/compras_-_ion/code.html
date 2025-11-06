@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ION - Lista de Compras</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#4D9FFF",
+            "background-light": "#f6f6f8",
+            "background-dark": "#0A0A0A",
+          },
+          fontFamily: {
+            "display": ["Space Grotesk", "sans-serif"]
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "1rem",
+            "xl": "1.5rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      background: linear-gradient(180deg, #0D254C 0%, #0A0A0A 100%);
+    }
+    .glassmorphism {
+      background: rgba(16, 22, 34, 0.4); /* Equivalent to bg-background-dark/40 */
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(77, 159, 255, 0.1);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-transparent group/design-root overflow-x-hidden">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-10 flex items-center bg-background-dark/50 p-4 pb-2 justify-between backdrop-blur-sm">
+<div class="flex size-12 shrink-0 items-center">
+<span class="material-symbols-outlined text-[#F5F5F5]">arrow_back</span>
+</div>
+<h1 class="text-[#F5F5F5] text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Lista de Compras</h1>
+<div class="flex w-12 items-center justify-end">
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-12 bg-transparent text-[#F5F5F5] gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 p-0">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</header>
+<main class="flex-1 px-4 pb-24">
+<!-- Laticínios Section -->
+<section class="mt-4">
+<div class="glassmorphism rounded-xl">
+<h2 class="text-[#F5F5F5] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Laticínios</h2>
+<div class="px-4 pb-2">
+<label class="flex gap-x-3 py-3 flex-row border-b border-white/10">
+<input checked="" class="h-6 w-6 rounded-full border-[#A9A9A9] border-2 bg-transparent text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<p class="text-[#F5F5F5] text-base font-normal leading-normal self-center">Leite Integral - 2L</p>
+</label>
+<label class="flex gap-x-3 py-3 flex-row border-b border-white/10">
+<input class="h-6 w-6 rounded-full border-[#A9A9A9] border-2 bg-transparent text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<p class="text-[#F5F5F5] text-base font-normal leading-normal self-center">Queijo Minas Frescal - 500g</p>
+</label>
+<label class="flex gap-x-3 py-3 flex-row">
+<input class="h-6 w-6 rounded-full border-[#A9A9A9] border-2 bg-transparent text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<p class="text-[#F5F5F5] text-base font-normal leading-normal self-center">Iogurte Grego - 4 unidades</p>
+</label>
+</div>
+</div>
+</section>
+<!-- ION Suggestion Card -->
+<section class="mt-6">
+<div class="relative overflow-hidden flex items-stretch justify-between gap-4 rounded-xl glassmorphism p-4 border border-primary/50 shadow-lg shadow-primary/10">
+<div class="absolute top-2 right-2 flex items-center gap-1.5 text-primary text-xs font-medium">
+<span class="material-symbols-outlined text-sm">auto_awesome</span>
+<span>ION</span>
+</div>
+<div class="flex flex-col gap-2">
+<p class="text-[#F5F5F5] text-base font-bold leading-tight pt-4">Este item está mais barato em outra loja.</p>
+<p class="text-[#A9A9A9] text-sm font-normal leading-normal">O Queijo Minas está 15% mais barato no mercado vizinho.</p>
+<button class="mt-2 flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-8 px-4 bg-primary/20 text-primary text-sm font-medium leading-normal w-fit">
+<span class="truncate">Ver detalhes</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Hortifruti Section -->
+<section class="mt-6">
+<div class="glassmorphism rounded-xl">
+<h2 class="text-[#F5F5F5] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Hortifruti</h2>
+<div class="px-4 pb-2">
+<label class="flex gap-x-3 py-3 flex-row border-b border-white/10">
+<input class="h-6 w-6 rounded-full border-[#A9A9A9] border-2 bg-transparent text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<p class="text-[#F5F5F5] text-base font-normal leading-normal self-center">Banana Prata - 6 unidades</p>
+</label>
+<label class="flex gap-x-3 py-3 flex-row">
+<input class="h-6 w-6 rounded-full border-[#A9A9A9] border-2 bg-transparent text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<p class="text-[#F5F5F5] text-base font-normal leading-normal self-center">Alface Crespa - 1 unidade</p>
+</label>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Action Button -->
+<div class="fixed bottom-6 right-6 z-20">
+<button class="flex items-center justify-center w-16 h-16 bg-primary rounded-full shadow-lg shadow-primary/30 text-white">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+</div>
+</div>
+</body></html>
