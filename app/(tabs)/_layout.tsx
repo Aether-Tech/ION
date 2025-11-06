@@ -34,13 +34,14 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: Colors.ionBlue,
         tabBarInactiveTintColor: Colors.textSecondary,
+        tabBarShowLabel: false,
         tabBarStyle: {
           backgroundColor: Colors.backgroundDarkTertiary,
-          borderTopWidth: 1,
+          borderTopWidth: 0.5,
           borderTopColor: Colors.border,
-          height: 60 + insets.bottom,
-          paddingBottom: Math.max(insets.bottom, 8),
-          paddingTop: 8,
+          height: 30 + insets.bottom,
+          paddingBottom: Math.max(insets.bottom + 8, 16),
+          paddingTop: 6,
           position: 'absolute',
         },
         tabBarLabelStyle: {
@@ -77,6 +78,24 @@ export default function TabsLayout() {
           title: 'Tarefas',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="checkmark-circle" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="shopping"
+        options={{
+          title: 'Compras',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="cart" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="savings"
+        options={{
+          title: 'Caixinhas',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="cash" size={size} color={color} />
           ),
         }}
       />

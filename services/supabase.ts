@@ -65,3 +65,25 @@ export interface Lembrete {
   recorrencia: string | null; // default 'Unico'
 }
 
+export interface ItemCompra {
+  id: number;
+  created_at: string;
+  item: string | null;
+  categoria: string | null;
+  usuario_id: number | null;
+  status: string | null; // default 'pendente', 'comprado'
+  selecao: string | null; // nome da lista/seleção (ex: 'Casa', 'Restaurante')
+}
+
+export interface Caixinha {
+  id: number;
+  created_at: string;
+  nome_caixinha: string | null;
+  valor_meta: number | null; // valor da meta em reais
+  valor_total_arrecadado: number | null; // valor total arrecadado
+  deposito: number | null; // último depósito ou depósito único
+  data_para_concluir: string | null; // data limite para atingir a meta (timestamp)
+  categoria: string | null;
+  usuario_id: number | null;
+}
+

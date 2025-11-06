@@ -1,4 +1,4 @@
-import { supabase, Usuario, Transacao, CategoriaTransacao, ToDo, Lembrete } from './supabase';
+import { supabase, Usuario, Transacao, CategoriaTransacao, ToDo, Lembrete, ItemCompra, Caixinha } from './supabase';
 
 // Serviços para Usuarios
 export const usuariosService = {
@@ -373,6 +373,232 @@ export const lembretesService = {
 
     if (error) {
       console.error('Error deleting reminder:', error);
+      return false;
+    }
+    return true;
+  },
+};
+
+// Serviços para Lista de Compras
+export const listaComprasService = {
+  // Buscar todos os itens de compra do usuário
+  getByUsuarioId: async (usuarioId: number): Promise<ItemCompra[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('lista_de_compras')
+        .select('*')
+        .eq('usuario_id', usuarioId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching shopping items:', error);
+        return [];
+      }
+      return data || [];
+    } catch (error) {
+      console.error('Exception fetching shopping items:', error);
+      return [];
+    }
+  },
+
+  // Buscar itens por status
+  getByStatus: async (usuarioId: number, status: string): Promise<ItemCompra[]> => {
+    const { data, error } = await supabase
+      .from('lista_de_compras')
+      .select('*')
+      .eq('usuario_id', usuarioId)
+      .eq('status', status)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching shopping items by status:', error);
+      return [];
+    }
+    return data || [];
+  },
+
+  // Buscar itens por seleção (lista)
+  getBySelecao: async (usuarioId: number, selecao: string | null): Promise<ItemCompra[]> => {
+    try {
+      let query = supabase
+        .from('lista_de_compras')
+        .select('*')
+        .eq('usuario_id', usuarioId)
+        .order('created_at', { ascending: false });
+
+      if (selecao === null) {
+        query = query.is('selecao', null);
+      } else {
+        query = query.eq('selecao', selecao);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching shopping items by selecao:', error);
+        return [];
+      }
+      return data || [];
+    } catch (error) {
+      console.error('Exception fetching shopping items by selecao:', error);
+      return [];
+    }
+  },
+
+  // Buscar todas as seleções (listas) únicas do usuário
+  getSelecoes: async (usuarioId: number): Promise<string[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('lista_de_compras')
+        .select('selecao')
+        .eq('usuario_id', usuarioId)
+        .not('selecao', 'is', null);
+
+      if (error) {
+        console.error('Error fetching selecoes:', error);
+        return [];
+      }
+
+      // Extrair valores únicos e não nulos
+      const selecoes = Array.from(
+        new Set(
+          (data || [])
+            .map((item) => item.selecao)
+            .filter((selecao): selecao is string => selecao !== null && selecao !== undefined)
+        )
+      );
+
+      return selecoes.sort();
+    } catch (error) {
+      console.error('Exception fetching selecoes:', error);
+      return [];
+    }
+  },
+
+  // Criar novo item de compra
+  create: async (item: Omit<ItemCompra, 'id' | 'created_at'>): Promise<ItemCompra | null> => {
+    const { data, error } = await supabase
+      .from('lista_de_compras')
+      .insert([item])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating shopping item:', error);
+      return null;
+    }
+    return data;
+  },
+
+  // Atualizar item de compra
+  update: async (id: number, updates: Partial<ItemCompra>): Promise<ItemCompra | null> => {
+    const { data, error } = await supabase
+      .from('lista_de_compras')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating shopping item:', error);
+      return null;
+    }
+    return data;
+  },
+
+  // Deletar item de compra
+  delete: async (id: number): Promise<boolean> => {
+    const { error } = await supabase
+      .from('lista_de_compras')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting shopping item:', error);
+      return false;
+    }
+    return true;
+  },
+};
+
+// Serviços para Caixinhas
+export const caixinhasService = {
+  // Buscar todas as caixinhas do usuário
+  getByUsuarioId: async (usuarioId: number): Promise<Caixinha[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('caixinha')
+        .select('*')
+        .eq('usuario_id', usuarioId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching savings boxes:', error);
+        return [];
+      }
+      return data || [];
+    } catch (error) {
+      console.error('Exception fetching savings boxes:', error);
+      return [];
+    }
+  },
+
+  // Buscar caixinhas por categoria (já que não tem status)
+  getByCategoria: async (usuarioId: number, categoria: string): Promise<Caixinha[]> => {
+    const { data, error } = await supabase
+      .from('caixinha')
+      .select('*')
+      .eq('usuario_id', usuarioId)
+      .eq('categoria', categoria)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching savings boxes by category:', error);
+      return [];
+    }
+    return data || [];
+  },
+
+  // Criar nova caixinha
+  create: async (caixinha: Omit<Caixinha, 'id' | 'created_at'>): Promise<Caixinha | null> => {
+    const { data, error } = await supabase
+      .from('caixinha')
+      .insert([caixinha])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating savings box:', error);
+      return null;
+    }
+    return data;
+  },
+
+  // Atualizar caixinha
+  update: async (id: number, updates: Partial<Caixinha>): Promise<Caixinha | null> => {
+    const { data, error } = await supabase
+      .from('caixinha')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating savings box:', error);
+      return null;
+    }
+    return data;
+  },
+
+  // Deletar caixinha
+  delete: async (id: number): Promise<boolean> => {
+    const { error } = await supabase
+      .from('caixinha')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting savings box:', error);
       return false;
     }
     return true;

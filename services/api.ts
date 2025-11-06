@@ -1,4 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
+import { format } from 'date-fns';
+import { transacoesService, categoriasService, toDoService, lembretesService, listaComprasService, caixinhasService } from './supabaseService';
 
 // Configuração da API (usada apenas para outras funcionalidades, NÃO para chat)
 const API_BASE_URL = 'https://ion.goaether.com.br/api';
@@ -99,6 +101,463 @@ export const authService = {
   },
 };
 
+// Função auxiliar para processar datas em português
+const parseDateFromPortuguese = (dateString: string | undefined): Date => {
+  if (!dateString) {
+    return new Date();
+  }
+
+  const now = new Date();
+  const lowerDate = dateString.toLowerCase().trim();
+
+  // Processar datas relativas comuns
+  let targetDate = new Date(now);
+  
+  if (lowerDate.includes('amanhã') || lowerDate.includes('amanha') || lowerDate.includes('tomorrow')) {
+    targetDate.setDate(targetDate.getDate() + 1);
+  } else if (lowerDate.includes('ontem') || lowerDate.includes('yesterday')) {
+    targetDate.setDate(targetDate.getDate() - 1);
+  } else if (lowerDate.includes('hoje') || lowerDate.includes('today')) {
+    // Manter data atual
+  } else {
+    // Tentar parsear como ISO ou timestamp
+    const parsedDate = new Date(dateString);
+    if (!isNaN(parsedDate.getTime())) {
+      targetDate = parsedDate;
+    }
+  }
+
+  // Processar horários mencionados
+  if (lowerDate.includes('meio dia') || lowerDate.includes('meio-dia') || lowerDate.includes('12h') || lowerDate.includes('12:00')) {
+    targetDate.setHours(12, 0, 0, 0);
+  } else if (lowerDate.includes('meia noite') || lowerDate.includes('meia-noite') || lowerDate.includes('00h') || lowerDate.includes('0h')) {
+    targetDate.setHours(0, 0, 0, 0);
+  } else {
+    // Tentar extrair horário (ex: "14h", "15:30", "8h30")
+    const hourMatch = lowerDate.match(/(\d{1,2})h/);
+    const timeMatch = lowerDate.match(/(\d{1,2}):(\d{2})/);
+    
+    if (hourMatch) {
+      const hour = parseInt(hourMatch[1], 10);
+      if (hour >= 0 && hour <= 23) {
+        targetDate.setHours(hour, 0, 0, 0);
+      }
+    } else if (timeMatch) {
+      const hour = parseInt(timeMatch[1], 10);
+      const minute = parseInt(timeMatch[2], 10);
+      if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+        targetDate.setHours(hour, minute, 0, 0);
+      }
+    } else {
+      // Se não há horário específico, usar horário atual mas manter a data
+      if (!lowerDate.includes('hoje') && !lowerDate.includes('today') && 
+          !lowerDate.includes('amanhã') && !lowerDate.includes('amanha') && 
+          !lowerDate.includes('ontem') && !lowerDate.includes('yesterday')) {
+        // Se não é uma data relativa e não tem horário, manter horário atual
+        targetDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+      }
+    }
+  }
+
+  return targetDate;
+};
+
+// Funções auxiliares para executar ações reais
+const executeFunctionCall = async (
+  functionName: string,
+  args: any,
+  userId: number | undefined
+): Promise<string> => {
+  if (!userId) {
+    return 'Erro: Usuário não autenticado. Por favor, faça login novamente.';
+  }
+
+  try {
+    switch (functionName) {
+      case 'create_transaction': {
+        const { description, amount, type, category, date } = args;
+        
+        if (!description || !amount) {
+          return 'Erro: Descrição e valor são obrigatórios para criar uma transação.';
+        }
+
+        const transactionAmount = parseFloat(amount);
+        if (isNaN(transactionAmount) || transactionAmount <= 0) {
+          return 'Erro: O valor deve ser um número positivo.';
+        }
+
+        // Inferir tipo baseado na descrição se não fornecido
+        let transactionType = type;
+        if (!transactionType) {
+          // Tentar inferir pelo contexto comum
+          const descLower = description.toLowerCase();
+          if (descLower.includes('salário') || descLower.includes('salario') || 
+              descLower.includes('receita') || descLower.includes('ganho') ||
+              descLower.includes('pagamento') || descLower.includes('entrada')) {
+            transactionType = 'entrada';
+          } else {
+            transactionType = 'saida'; // Padrão para despesas
+          }
+        }
+
+        // Inferir categoria baseado na descrição se não fornecida
+        let categoriaNome = category;
+        if (!categoriaNome) {
+          const descLower = description.toLowerCase();
+          if (descLower.includes('almoço') || descLower.includes('almoco') || 
+              descLower.includes('jantar') || descLower.includes('lanche') ||
+              descLower.includes('comida') || descLower.includes('restaurante')) {
+            categoriaNome = 'Alimentação';
+          } else if (descLower.includes('transporte') || descLower.includes('uber') ||
+                     descLower.includes('táxi') || descLower.includes('taxi') ||
+                     descLower.includes('gasolina') || descLower.includes('combustível')) {
+            categoriaNome = 'Transporte';
+          } else if (descLower.includes('salário') || descLower.includes('salario') ||
+                     descLower.includes('trabalho') || descLower.includes('freelance')) {
+            categoriaNome = 'Trabalho';
+          } else {
+            categoriaNome = 'Outros';
+          }
+        }
+
+        // Buscar ou criar categoria
+        let categoriaId: number;
+        let categoria = (await categoriasService.getByUsuarioId(userId)).find(
+          (c) => c.descricao === categoriaNome
+        );
+
+        if (!categoria) {
+          const novaCategoria = await categoriasService.create({
+            descricao: categoriaNome,
+            usuario_id: userId,
+            date: null,
+          });
+          if (novaCategoria) {
+            categoria = novaCategoria;
+          } else {
+            return 'Erro: Não foi possível criar a categoria.';
+          }
+        }
+        categoriaId = categoria.id;
+
+        // Processar data
+        const transactionDate = parseDateFromPortuguese(date);
+
+        const mes = format(transactionDate, 'yyyy-MM');
+        const transacao = await transacoesService.create({
+          data: format(transactionDate, 'yyyy-MM-dd'),
+          valor: transactionAmount,
+          descricao: description,
+          recebedor: null,
+          pagador: null,
+          mes,
+          categoria_id: categoriaId,
+          tipo: transactionType === 'income' || transactionType === 'entrada' ? 'entrada' : 'saida',
+          usuario_id: userId,
+        });
+
+        if (transacao) {
+          return `✅ Transação criada com sucesso! ${transactionType === 'income' || transactionType === 'entrada' ? 'Receita' : 'Despesa'} de R$ ${transactionAmount.toFixed(2)} para "${description}" na categoria "${categoriaNome}" em ${format(transactionDate, 'dd/MM/yyyy')}.`;
+        } else {
+          return 'Erro: Não foi possível criar a transação.';
+        }
+      }
+
+      case 'list_transactions': {
+        const { limit = 10, type, category } = args;
+        const transactions = await transacoesService.getByUsuarioId(userId);
+        
+        let filtered = transactions;
+        if (type && (type === 'income' || type === 'expense')) {
+          filtered = filtered.filter(
+            (t) => (type === 'income' && t.tipo === 'entrada') || (type === 'expense' && t.tipo === 'saida')
+          );
+        }
+
+        const categorias = await categoriasService.getByUsuarioId(userId);
+        const transactionsWithCategories = filtered.slice(0, limit).map((t) => {
+          const cat = categorias.find((c) => c.id === t.categoria_id);
+          return {
+            ...t,
+            categoria: cat?.descricao || 'Sem categoria',
+          };
+        });
+
+        if (transactionsWithCategories.length === 0) {
+          return 'Nenhuma transação encontrada.';
+        }
+
+        const transactionsList = transactionsWithCategories
+          .map(
+            (t) =>
+              `- ${t.tipo === 'entrada' ? 'Receita' : 'Despesa'}: ${t.descricao} - R$ ${Number(t.valor).toFixed(2)} (${t.categoria}) - ${format(new Date(t.data), 'dd/MM/yyyy')}`
+          )
+          .join('\n');
+
+        return `Transações recentes:\n${transactionsList}`;
+      }
+
+      case 'create_task': {
+        const { title, category, date } = args;
+        
+        if (!title) {
+          return 'Erro: O título da tarefa é obrigatório.';
+        }
+
+        let taskDate: string | null = null;
+        if (date) {
+          const parsedDate = new Date(date);
+          if (!isNaN(parsedDate.getTime())) {
+            taskDate = format(parsedDate, 'yyyy-MM-dd');
+          }
+        }
+
+        const task = await toDoService.create({
+          item: title,
+          categoria: category || 'Pessoal',
+          date: taskDate,
+          usuario_id: userId,
+          status: 'pendente',
+        });
+
+        if (task) {
+          return `✅ Tarefa criada com sucesso! "${title}" adicionada à sua lista de tarefas.`;
+        } else {
+          return 'Erro: Não foi possível criar a tarefa.';
+        }
+      }
+
+      case 'list_tasks': {
+        const { status, limit = 10 } = args;
+        let tasks;
+        
+        if (status) {
+          tasks = await toDoService.getByStatus(userId, status);
+        } else {
+          tasks = await toDoService.getByUsuarioId(userId);
+        }
+
+        const filteredTasks = tasks.slice(0, limit);
+
+        if (filteredTasks.length === 0) {
+          return 'Nenhuma tarefa encontrada.';
+        }
+
+        const tasksList = filteredTasks
+          .map(
+            (t) =>
+              `- ${t.status === 'concluida' ? '✅' : '⏳'} ${t.item || 'Sem título'} (${t.categoria || 'Sem categoria'})${t.date ? ` - ${format(new Date(t.date), 'dd/MM/yyyy')}` : ''}`
+          )
+          .join('\n');
+
+        return `Tarefas:\n${tasksList}`;
+      }
+
+      case 'create_reminder': {
+        const { title, date, recurrence } = args;
+        
+        if (!title) {
+          return 'Erro: O título do lembrete é obrigatório.';
+        }
+
+        if (!date) {
+          return 'Erro: A data do lembrete é obrigatória.';
+        }
+
+        const reminderDate = new Date(date);
+        if (isNaN(reminderDate.getTime())) {
+          return 'Erro: Data inválida. Use o formato YYYY-MM-DD ou YYYY-MM-DDTHH:mm:ss.';
+        }
+
+        const reminder = await lembretesService.create({
+          lembrete: title,
+          data_para_lembrar: reminderDate.toISOString(),
+          celular: null,
+          usuario_id: userId,
+          recorrencia: recurrence || 'Unico',
+        });
+
+        if (reminder) {
+          return `✅ Lembrete criado com sucesso! "${title}" agendado para ${format(reminderDate, 'dd/MM/yyyy HH:mm')}.`;
+        } else {
+          return 'Erro: Não foi possível criar o lembrete.';
+        }
+      }
+
+      case 'list_reminders': {
+        const { limit = 10 } = args;
+        const reminders = await lembretesService.getByUsuarioId(userId);
+        const filteredReminders = reminders.slice(0, limit);
+
+        if (filteredReminders.length === 0) {
+          return 'Nenhum lembrete encontrado.';
+        }
+
+        const remindersList = filteredReminders
+          .map(
+            (r) =>
+              `- ${r.lembrete || 'Sem título'} - ${r.data_para_lembrar ? format(new Date(r.data_para_lembrar), 'dd/MM/yyyy HH:mm') : 'Sem data'} (${r.recorrencia || 'Único'})`
+          )
+          .join('\n');
+
+        return `Lembretes:\n${remindersList}`;
+      }
+
+      case 'create_shopping_item': {
+        const { item, category } = args;
+        
+        if (!item) {
+          return 'Erro: O nome do item é obrigatório.';
+        }
+
+        const shoppingItem = await listaComprasService.create({
+          item,
+          categoria: category || 'Outros',
+          usuario_id: userId,
+          status: 'pendente',
+        });
+
+        if (shoppingItem) {
+          return `✅ Item adicionado à lista de compras! "${item}" na categoria "${category || 'Outros'}".`;
+        } else {
+          return 'Erro: Não foi possível adicionar o item à lista de compras.';
+        }
+      }
+
+      case 'list_shopping_items': {
+        const { status, limit = 20 } = args;
+        let items;
+        
+        if (status) {
+          items = await listaComprasService.getByStatus(userId, status);
+        } else {
+          items = await listaComprasService.getByUsuarioId(userId);
+        }
+
+        const filteredItems = items.slice(0, limit);
+
+        if (filteredItems.length === 0) {
+          return 'Nenhum item na lista de compras.';
+        }
+
+        const itemsList = filteredItems
+          .map(
+            (i) =>
+              `- ${i.status === 'comprado' ? '✅' : '⏳'} ${i.item || 'Sem nome'} (${i.categoria || 'Sem categoria'})`
+          )
+          .join('\n');
+
+        return `Lista de Compras:\n${itemsList}`;
+      }
+
+      case 'create_savings_box': {
+        const { name, goal, deadline } = args;
+        
+        if (!name) {
+          return 'Erro: O nome da caixinha é obrigatório.';
+        }
+
+        if (!goal || parseFloat(goal) <= 0) {
+          return 'Erro: A meta deve ser um valor positivo.';
+        }
+
+        if (!deadline) {
+          return 'Erro: A data limite é obrigatória. Use o formato YYYY-MM-DD.';
+        }
+
+        const deadlineDate = new Date(deadline);
+        if (isNaN(deadlineDate.getTime())) {
+          return 'Erro: Data limite inválida. Use o formato YYYY-MM-DD.';
+        }
+
+        const caixinha = await caixinhasService.create({
+          nome_caixinha: name,
+          valor_meta: parseFloat(goal),
+          valor_total_arrecadado: 0,
+          deposito: null,
+          data_para_concluir: deadlineDate.toISOString(),
+          categoria: null,
+          usuario_id: userId,
+        });
+
+        if (caixinha) {
+          return `✅ Caixinha criada com sucesso! "${name}" com meta de R$ ${parseFloat(goal).toFixed(2)} até ${format(deadlineDate, 'dd/MM/yyyy')}.`;
+        } else {
+          return 'Erro: Não foi possível criar a caixinha.';
+        }
+      }
+
+      case 'add_deposit': {
+        const { box_id, amount } = args;
+        
+        if (!box_id) {
+          return 'Erro: O ID da caixinha é obrigatório.';
+        }
+
+        if (!amount || parseFloat(amount) <= 0) {
+          return 'Erro: O valor do depósito deve ser positivo.';
+        }
+
+        const caixinhas = await caixinhasService.getByUsuarioId(userId);
+        const caixinha = caixinhas.find(c => c.id === parseInt(box_id, 10));
+
+        if (!caixinha) {
+          return 'Erro: Caixinha não encontrada.';
+        }
+
+        const newValue = (caixinha.valor_total_arrecadado || 0) + parseFloat(amount);
+        const isCompleted = newValue >= (caixinha.valor_meta || 0);
+
+        const updated = await caixinhasService.update(parseInt(box_id, 10), {
+          valor_total_arrecadado: newValue,
+          deposito: parseFloat(amount),
+        });
+
+        if (updated) {
+          if (isCompleted) {
+            return `✅ Depósito de R$ ${parseFloat(amount).toFixed(2)} adicionado! Parabéns, você atingiu a meta da caixinha "${caixinha.nome_caixinha}"!`;
+          }
+          return `✅ Depósito de R$ ${parseFloat(amount).toFixed(2)} adicionado à caixinha "${caixinha.nome_caixinha}". Valor atual: R$ ${newValue.toFixed(2)} / R$ ${(caixinha.valor_meta || 0).toFixed(2)}.`;
+        } else {
+          return 'Erro: Não foi possível adicionar o depósito.';
+        }
+      }
+
+      case 'list_savings_boxes': {
+        const { limit = 10 } = args;
+        const boxes = await caixinhasService.getByUsuarioId(userId);
+
+        const filteredBoxes = boxes.slice(0, limit);
+
+        if (filteredBoxes.length === 0) {
+          return 'Nenhuma caixinha encontrada.';
+        }
+
+        const boxesList = filteredBoxes
+          .map(
+            (b) => {
+              const valorMeta = b.valor_meta || 0;
+              const valorArrecadado = b.valor_total_arrecadado || 0;
+              const progress = valorMeta > 0 ? (valorArrecadado / valorMeta) * 100 : 0;
+              const remaining = Math.max(0, valorMeta - valorArrecadado);
+              const isCompleted = valorArrecadado >= valorMeta;
+              return `- ${isCompleted ? '✅' : '💰'} ${b.nome_caixinha || 'Sem nome'}: R$ ${valorArrecadado.toFixed(2)} / R$ ${valorMeta.toFixed(2)} (${progress.toFixed(0)}%)${remaining > 0 ? ` - Falta: R$ ${remaining.toFixed(2)}` : ''}${b.data_para_concluir ? ` - Prazo: ${format(new Date(b.data_para_concluir), 'dd/MM/yyyy')}` : ''}`;
+            }
+          )
+          .join('\n');
+
+        return `Caixinhas:\n${boxesList}`;
+      }
+
+      default:
+        return `Função desconhecida: ${functionName}`;
+    }
+  } catch (error) {
+    console.error(`Error executing function ${functionName}:`, error);
+    return `Erro ao executar ${functionName}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`;
+  }
+};
+
 // Serviços de chat - usando OpenAI diretamente (NÃO usa API_BASE_URL)
 export const chatService = {
   sendMessage: async (
@@ -106,7 +565,8 @@ export const chatService = {
     message: string,
     onStream?: (chunk: string, fullText: string) => void,
     onThinking?: () => void,
-    onStartTyping?: () => void
+    onStartTyping?: () => void,
+    userId?: number
   ): Promise<ApiResponse<any>> => {
     // Verificar se tem API KEY da OpenAI
     if (!API_KEY) {
@@ -133,55 +593,385 @@ export const chatService = {
       // Pequeno delay antes de começar a escrever
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Chamar DIRETAMENTE a API da OpenAI (sem streaming por enquanto - React Native não suporta bem)
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini', // Usando modelo que existe (gpt-5-nano não existe ainda)
-          messages: [
-            {
-              role: 'system',
-              content: 'Você é a ION, uma assistente pessoal inteligente e prestativa. Seja amigável, concisa e útil.'
+      // Definir as ferramentas (tools) disponíveis
+      const tools = [
+        {
+          type: 'function',
+          function: {
+            name: 'create_transaction',
+            description: 'Criar uma nova transação financeira (receita ou despesa). Use esta função quando o usuário pedir para adicionar um gasto, receita, despesa ou transação financeira.',
+            parameters: {
+              type: 'object',
+              properties: {
+                description: {
+                  type: 'string',
+                  description: 'Descrição da transação (ex: "Almoço", "Salário")',
+                },
+                amount: {
+                  type: 'number',
+                  description: 'Valor da transação em reais (ex: 30.50)',
+                },
+                type: {
+                  type: 'string',
+                  enum: ['expense', 'income', 'saida', 'entrada'],
+                  description: 'Tipo da transação: "expense" ou "saida" para despesas, "income" ou "entrada" para receitas. Se não fornecido, tentar inferir baseado na descrição (gastos são "expense" por padrão)',
+                },
+                category: {
+                  type: 'string',
+                  description: 'Categoria da transação (ex: "Alimentação", "Trabalho", "Outros"). Se não fornecida, tentar inferir baseado na descrição (ex: "almoço" -> "Alimentação")',
+                },
+                date: {
+                  type: 'string',
+                  description: 'Data da transação no formato ISO (YYYY-MM-DD), timestamp, ou expressões como "hoje", "amanhã", "ontem". Se o usuário mencionar um horário (ex: "meio dia", "12h"), incluir na data. Se não fornecida, usar a data atual',
+                },
+              },
+              required: ['description', 'amount'],
             },
-            {
-              role: 'user',
-              content: message
-            }
-          ],
-          temperature: 1,
-          max_tokens: 500,
-          stream: false, // Sem streaming - vamos simular depois
-        }),
-      });
-      
-      if (!response.ok) {
-        let errorMessage = `Erro ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error?.message || errorData.error?.code || errorMessage;
-          
-          // Mensagens de erro mais amigáveis
-          if (response.status === 401) {
-            errorMessage = 'API KEY inválida. Verifique sua chave no arquivo .env';
-          } else if (response.status === 429) {
-            errorMessage = 'Limite de requisições excedido. Tente novamente mais tarde.';
-          } else if (response.status === 500) {
-            errorMessage = 'Erro no servidor da OpenAI. Tente novamente.';
-          }
-        } catch (e) {
-          errorMessage = `Erro ${response.status}: ${response.statusText || 'Erro desconhecido'}`;
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'list_transactions',
+            description: 'Listar transações financeiras do usuário. Use esta função quando o usuário pedir para ver gastos, receitas, transações ou extrato.',
+            parameters: {
+              type: 'object',
+              properties: {
+                limit: {
+                  type: 'number',
+                  description: 'Número máximo de transações para retornar (padrão: 10)',
+                },
+                type: {
+                  type: 'string',
+                  enum: ['income', 'expense'],
+                  description: 'Filtrar por tipo: "income" para receitas, "expense" para despesas',
+                },
+                category: {
+                  type: 'string',
+                  description: 'Filtrar por categoria',
+                },
+              },
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'create_task',
+            description: 'Criar uma nova tarefa na lista de tarefas. Use esta função quando o usuário pedir para adicionar uma tarefa, item na lista, ou criar um to-do.',
+            parameters: {
+              type: 'object',
+              properties: {
+                title: {
+                  type: 'string',
+                  description: 'Título/descrição da tarefa',
+                },
+                category: {
+                  type: 'string',
+                  description: 'Categoria da tarefa (ex: "Pessoal", "Trabalho", "Saúde")',
+                },
+                date: {
+                  type: 'string',
+                  description: 'Data limite da tarefa no formato ISO (YYYY-MM-DD). Opcional',
+                },
+              },
+              required: ['title'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'list_tasks',
+            description: 'Listar tarefas do usuário. Use esta função quando o usuário pedir para ver suas tarefas, lista de afazeres ou to-dos.',
+            parameters: {
+              type: 'object',
+              properties: {
+                status: {
+                  type: 'string',
+                  enum: ['pendente', 'concluida'],
+                  description: 'Filtrar por status: "pendente" ou "concluida"',
+                },
+                limit: {
+                  type: 'number',
+                  description: 'Número máximo de tarefas para retornar (padrão: 10)',
+                },
+              },
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'create_reminder',
+            description: 'Criar um novo lembrete. Use esta função quando o usuário pedir para criar um lembrete, alarme ou notificação para uma data/hora específica.',
+            parameters: {
+              type: 'object',
+              properties: {
+                title: {
+                  type: 'string',
+                  description: 'Título/descrição do lembrete',
+                },
+                date: {
+                  type: 'string',
+                  description: 'Data e hora do lembrete no formato ISO (YYYY-MM-DDTHH:mm:ss) ou timestamp',
+                },
+                recurrence: {
+                  type: 'string',
+                  description: 'Recorrência do lembrete (ex: "Unico", "Diario", "Semanal", "Mensal")',
+                },
+              },
+              required: ['title', 'date'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'list_reminders',
+            description: 'Listar lembretes do usuário. Use esta função quando o usuário pedir para ver seus lembretes ou alarmes.',
+            parameters: {
+              type: 'object',
+              properties: {
+                limit: {
+                  type: 'number',
+                  description: 'Número máximo de lembretes para retornar (padrão: 10)',
+                },
+              },
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'create_shopping_item',
+            description: 'Adicionar um item à lista de compras. Use esta função quando o usuário pedir para adicionar algo à lista de compras, lista do supermercado ou lista de itens para comprar.',
+            parameters: {
+              type: 'object',
+              properties: {
+                item: {
+                  type: 'string',
+                  description: 'Nome do item a ser adicionado (ex: "Leite", "Pão", "Arroz")',
+                },
+                category: {
+                  type: 'string',
+                  enum: ['Alimentos', 'Limpeza', 'Higiene', 'Outros'],
+                  description: 'Categoria do item (padrão: "Outros")',
+                },
+              },
+              required: ['item'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'list_shopping_items',
+            description: 'Listar itens da lista de compras. Use esta função quando o usuário pedir para ver sua lista de compras, lista do supermercado ou itens para comprar.',
+            parameters: {
+              type: 'object',
+              properties: {
+                status: {
+                  type: 'string',
+                  enum: ['pendente', 'comprado'],
+                  description: 'Filtrar por status: "pendente" ou "comprado"',
+                },
+                limit: {
+                  type: 'number',
+                  description: 'Número máximo de itens para retornar (padrão: 20)',
+                },
+              },
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'create_savings_box',
+            description: 'Criar uma nova caixinha de economia (meta de poupança). Use esta função quando o usuário pedir para criar uma meta de economia, poupança ou caixinha para guardar dinheiro.',
+            parameters: {
+              type: 'object',
+              properties: {
+                name: {
+                  type: 'string',
+                  description: 'Nome da caixinha (ex: "Viagem", "Notebook", "Emergência")',
+                },
+                goal: {
+                  type: 'string',
+                  description: 'Valor da meta em reais (ex: "1000", "5000")',
+                },
+                deadline: {
+                  type: 'string',
+                  description: 'Data limite para atingir a meta no formato YYYY-MM-DD (ex: "2024-12-31")',
+                },
+              },
+              required: ['name', 'goal', 'deadline'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'add_deposit',
+            description: 'Adicionar um depósito a uma caixinha de economia. Use esta função quando o usuário pedir para adicionar dinheiro, fazer um depósito ou guardar dinheiro em uma caixinha.',
+            parameters: {
+              type: 'object',
+              properties: {
+                box_id: {
+                  type: 'string',
+                  description: 'ID da caixinha onde adicionar o depósito. Se o usuário mencionar o nome da caixinha, você precisará primeiro listar as caixinhas para encontrar o ID.',
+                },
+                amount: {
+                  type: 'string',
+                  description: 'Valor do depósito em reais (ex: "100", "500")',
+                },
+              },
+              required: ['box_id', 'amount'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'list_savings_boxes',
+            description: 'Listar caixinhas de economia do usuário. Use esta função quando o usuário pedir para ver suas metas de poupança, caixinhas ou economias.',
+            parameters: {
+              type: 'object',
+              properties: {
+                status: {
+                  type: 'string',
+                  enum: ['ativa', 'concluida'],
+                  description: 'Filtrar por status: "ativa" ou "concluida"',
+                },
+                limit: {
+                  type: 'number',
+                  description: 'Número máximo de caixinhas para retornar (padrão: 10)',
+                },
+              },
+            },
+          },
+        },
+      ];
+
+      // Criar mensagens da conversa
+      const messages: any[] = [
+        {
+          role: 'system',
+          content: `Você é a ION, uma assistente pessoal inteligente e prestativa. Seja amigável, concisa e útil.
+
+Você tem acesso a funções que permitem:
+- Criar e listar transações financeiras (gastos e receitas)
+- Criar e listar tarefas
+- Criar e listar lembretes
+- Adicionar e listar itens da lista de compras
+- Criar e gerenciar caixinhas de economia (metas de poupança)
+
+Quando o usuário pedir para fazer algo (como adicionar um gasto, criar uma tarefa, etc.), você DEVE usar as funções disponíveis para realmente executar a ação. Não apenas diga que vai fazer - EXECUTE a função.
+
+Exemplos:
+- Se o usuário pedir "adicione um gasto de 30 reais para almoço", você deve chamar a função create_transaction
+- Se o usuário pedir "quais são meus gastos?", você deve chamar a função list_transactions
+- Se o usuário pedir "crie uma tarefa para comprar leite", você deve chamar a função create_task
+- Se o usuário pedir "adicione leite à lista de compras", você deve chamar a função create_shopping_item
+- Se o usuário pedir "crie uma meta para guardar 1000 reais até dezembro", você deve chamar a função create_savings_box
+
+Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
+        },
+        {
+          role: 'user',
+          content: message
         }
+      ];
+
+      // Loop para processar múltiplas chamadas de função se necessário
+      let fullText = '';
+      let maxIterations = 5;
+      let iteration = 0;
+
+      while (iteration < maxIterations) {
+        // Chamar a API da OpenAI
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: messages,
+            tools: tools,
+            tool_choice: 'auto', // A OpenAI decide quando usar as funções
+            temperature: 1,
+            max_tokens: 1000,
+          }),
+        });
         
-        return { success: false, error: errorMessage };
+        if (!response.ok) {
+          let errorMessage = `Erro ${response.status}`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error?.message || errorData.error?.code || errorMessage;
+            
+            if (response.status === 401) {
+              errorMessage = 'API KEY inválida. Verifique sua chave no arquivo .env';
+            } else if (response.status === 429) {
+              errorMessage = 'Limite de requisições excedido. Tente novamente mais tarde.';
+            } else if (response.status === 500) {
+              errorMessage = 'Erro no servidor da OpenAI. Tente novamente.';
+            }
+          } catch (e) {
+            errorMessage = `Erro ${response.status}: ${response.statusText || 'Erro desconhecido'}`;
+          }
+          
+          return { success: false, error: errorMessage };
+        }
+
+        const data = await response.json();
+        const message = data.choices?.[0]?.message;
+
+        if (!message) {
+          break;
+        }
+
+        // Adicionar a mensagem do assistente à conversa
+        messages.push(message);
+
+        // Verificar se há tool_calls (chamadas de função)
+        if (message.tool_calls && message.tool_calls.length > 0) {
+          // Executar todas as funções solicitadas
+          const toolResults = await Promise.all(
+            message.tool_calls.map(async (toolCall: any) => {
+              const functionName = toolCall.function.name;
+              const functionArgs = JSON.parse(toolCall.function.arguments);
+              
+              console.log(`[Function Call] ${functionName}`, functionArgs);
+              
+              const result = await executeFunctionCall(functionName, functionArgs, userId);
+              
+              return {
+                role: 'tool' as const,
+                tool_call_id: toolCall.id,
+                content: result,
+              };
+            })
+          );
+
+          // Adicionar os resultados das funções à conversa
+          messages.push(...toolResults);
+          
+          iteration++;
+          continue; // Fazer nova requisição com os resultados
+        } else {
+          // Não há tool_calls, temos a resposta final
+          fullText = message.content || 'Desculpe, não consegui gerar uma resposta.';
+          break;
+        }
       }
 
-      // Obter resposta completa
-      const data = await response.json();
-      const fullText = data.choices?.[0]?.message?.content || 'Desculpe, não consegui gerar uma resposta.';
+      // Se não conseguimos uma resposta após todas as iterações
+      if (!fullText) {
+        fullText = 'Desculpe, ocorreu um problema ao processar sua solicitação.';
+      }
 
       // Simular streaming - exibir texto letra por letra
       if (onStream && fullText) {
@@ -191,22 +981,19 @@ export const chatService = {
         for (let i = 0; i < chars.length; i++) {
           displayedText += chars[i];
           
-          // Chamar callback com o texto atual
           if (onStream) {
             onStream(chars[i], displayedText);
           }
           
-          // Delay entre caracteres (velocidade de digitação)
-          // Velocidade variável: mais rápido para espaços, mais lento para pontuação
           const char = chars[i];
-          let delay = 20; // base delay em ms
+          let delay = 20;
           
           if (char === ' ' || char === '\n') {
-            delay = 10; // mais rápido para espaços
+            delay = 10;
           } else if (char === '.' || char === '!' || char === '?') {
-            delay = 100; // pausa maior para pontuação
+            delay = 100;
           } else if (char === ',') {
-            delay = 60; // pausa média para vírgulas
+            delay = 60;
           }
           
           await new Promise(resolve => setTimeout(resolve, delay));

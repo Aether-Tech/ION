@@ -44,6 +44,8 @@ export default function RemindersScreen() {
   const [loading, setLoading] = useState(true);
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newCategory, setNewCategory] = useState<TaskCategory>('Pessoal');
@@ -276,6 +278,53 @@ export default function RemindersScreen() {
     } catch (error) {
       console.error('Error adding reminder:', error);
       Alert.alert('Erro', 'Não foi possível adicionar a tarefa');
+    }
+  };
+
+  const openEditModal = (reminder: Reminder) => {
+    setEditingReminder(reminder);
+    setNewTitle(reminder.title);
+    setNewDescription(reminder.description || '');
+    setNewCategory((reminder.category as TaskCategory) || 'Pessoal');
+    setEditModalVisible(true);
+  };
+
+  const closeEditModal = () => {
+    setEditModalVisible(false);
+    setEditingReminder(null);
+    setNewTitle('');
+    setNewDescription('');
+    setNewCategory('Pessoal');
+  };
+
+  const updateReminder = async () => {
+    if (!user?.usuarioId || !editingReminder) {
+      Alert.alert('Erro', 'Usuário não autenticado ou tarefa não encontrada');
+      return;
+    }
+
+    if (!newTitle.trim()) {
+      Alert.alert('Erro', 'Por favor, insira um título para o lembrete');
+      return;
+    }
+
+    try {
+      const todoId = parseInt(editingReminder.id);
+      const updated = await toDoService.update(todoId, {
+        item: newTitle,
+        categoria: newCategory,
+      });
+
+      if (updated) {
+        closeEditModal();
+        // Recarregar dados para garantir sincronização
+        await loadData();
+      } else {
+        throw new Error('Não foi possível atualizar a tarefa');
+      }
+    } catch (error) {
+      console.error('Error updating reminder:', error);
+      Alert.alert('Erro', 'Não foi possível atualizar a tarefa');
     }
   };
 
@@ -739,13 +788,22 @@ Responda APENAS com o número da hora (0-23), sem texto adicional, sem explicaç
           )}
         </View>
       </TouchableOpacity>
-      <TouchableOpacity
-        onPress={() => deleteReminder(item.id)}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        style={styles.deleteButton}
-      >
-        <Ionicons name="trash-outline" size={20} color={Colors.error} />
-      </TouchableOpacity>
+      <View style={styles.actionButtons}>
+        <TouchableOpacity
+          onPress={() => openEditModal(item)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={styles.editButton}
+        >
+          <Ionicons name="pencil-outline" size={20} color={Colors.ionBlue} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => deleteReminder(item.id)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={styles.deleteButton}
+        >
+          <Ionicons name="trash-outline" size={20} color={Colors.error} />
+        </TouchableOpacity>
+      </View>
     </BlurView>
   );
 
@@ -953,6 +1011,100 @@ Responda APENAS com o número da hora (0-23), sem texto adicional, sem explicaç
 
               <TouchableOpacity style={styles.modalButton} onPress={addReminder}>
                 <Text style={styles.modalButtonText}>Adicionar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal de edição de tarefa */}
+        <Modal
+          visible={editModalVisible}
+          animationType="slide"
+          transparent
+          onRequestClose={closeEditModal}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Editar Tarefa</Text>
+                <TouchableOpacity onPress={closeEditModal}>
+                  <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalLabel}>Título *</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Ex: Reunião importante"
+                placeholderTextColor={Colors.textSecondary}
+                value={newTitle}
+                onChangeText={setNewTitle}
+              />
+
+              <Text style={styles.modalLabel}>Categoria *</Text>
+              <View style={styles.categorySelector}>
+                <TouchableOpacity
+                  style={[
+                    styles.categoryButton,
+                    newCategory === 'Pessoal' && styles.categoryButtonActive,
+                  ]}
+                  onPress={() => setNewCategory('Pessoal')}
+                >
+                  <Text
+                    style={[
+                      styles.categoryButtonText,
+                      newCategory === 'Pessoal' && styles.categoryButtonTextActive,
+                    ]}
+                  >
+                    Pessoal
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.categoryButton,
+                    newCategory === 'Trabalho' && styles.categoryButtonActive,
+                  ]}
+                  onPress={() => setNewCategory('Trabalho')}
+                >
+                  <Text
+                    style={[
+                      styles.categoryButtonText,
+                      newCategory === 'Trabalho' && styles.categoryButtonTextActive,
+                    ]}
+                  >
+                    Trabalho
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.categoryButton,
+                    newCategory === 'Saúde' && styles.categoryButtonActive,
+                  ]}
+                  onPress={() => setNewCategory('Saúde')}
+                >
+                  <Text
+                    style={[
+                      styles.categoryButtonText,
+                      newCategory === 'Saúde' && styles.categoryButtonTextActive,
+                    ]}
+                  >
+                    Saúde
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalLabel}>Descrição</Text>
+              <TextInput
+                style={[styles.modalInput, styles.modalTextArea]}
+                placeholder="Detalhes da tarefa"
+                placeholderTextColor={Colors.textSecondary}
+                value={newDescription}
+                onChangeText={setNewDescription}
+                multiline
+              />
+
+              <TouchableOpacity style={styles.modalButton} onPress={updateReminder}>
+                <Text style={styles.modalButtonText}>Salvar Alterações</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1212,6 +1364,14 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     fontSize: 12,
     fontWeight: '600',
     color: Colors.ionBlue,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editButton: {
+    padding: 8,
   },
   deleteButton: {
     padding: 8,

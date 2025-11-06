@@ -624,7 +624,9 @@ export default function ChatScreen() {
               msg.id === aiMessageId ? { ...msg, isThinking: false, isTyping: true } : msg
             )
           );
-        }
+        },
+        // userId
+        user.usuarioId
       );
       
       console.log('API Response:', JSON.stringify(response, null, 2));
