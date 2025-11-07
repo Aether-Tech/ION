@@ -91,15 +91,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="savings"
-        options={{
-          title: 'Caixinhas',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cash" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="finances"
         options={{
           title: 'Finanças',
@@ -114,6 +105,15 @@ export default function TabsLayout() {
           title: 'Calendário',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="calendar" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="savings"
+        options={{
+          title: 'Caixinhas',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="cash" size={size} color={color} />
           ),
         }}
       />

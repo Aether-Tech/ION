@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { format } from 'date-fns';
-import { transacoesService, categoriasService, toDoService, lembretesService, listaComprasService, caixinhasService } from './supabaseService';
+import { usuariosService, transacoesService, categoriasService, toDoService, lembretesService, listaComprasService, caixinhasService } from './supabaseService';
 
 // Configuração da API (usada apenas para outras funcionalidades, NÃO para chat)
 const API_BASE_URL = 'https://ion.goaether.com.br/api';
@@ -162,11 +162,49 @@ const parseDateFromPortuguese = (dateString: string | undefined): Date => {
   return targetDate;
 };
 
+const normalizeRecurrence = (recurrence?: string | null): string => {
+  if (!recurrence) {
+    return 'Unico';
+  }
+
+  const sanitized = recurrence
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+  if (!sanitized) {
+    return 'Unico';
+  }
+
+  const mappings: Record<string, string> = {
+    unico: 'Unico',
+    'sem recorrencia': 'Unico',
+    'semrecorrencia': 'Unico',
+    once: 'Unico',
+    unicoa: 'Unico',
+    diario: 'Diario',
+    diaria: 'Diario',
+    daily: 'Diario',
+    semanal: 'Semanal',
+    weekly: 'Semanal',
+    mensal: 'Mensal',
+    monthly: 'Mensal',
+  };
+
+  if (mappings[sanitized]) {
+    return mappings[sanitized];
+  }
+
+  return recurrence;
+};
+
 // Funções auxiliares para executar ações reais
 const executeFunctionCall = async (
   functionName: string,
   args: any,
-  userId: number | undefined
+  userId: number | undefined,
+  userMessage?: string
 ): Promise<string> => {
   if (!userId) {
     return 'Erro: Usuário não autenticado. Por favor, faça login novamente.';
@@ -364,17 +402,96 @@ const executeFunctionCall = async (
           return 'Erro: A data do lembrete é obrigatória.';
         }
 
-        const reminderDate = new Date(date);
-        if (isNaN(reminderDate.getTime())) {
-          return 'Erro: Data inválida. Use o formato YYYY-MM-DD ou YYYY-MM-DDTHH:mm:ss.';
+        const temporalRegex = /(hoje|amanh|ontem|depois de amanh|segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo|manhã|manha|tarde|noite|\d{1,2}\s*h|\d{1,2}:\d{2}|\d{1,2}\/\d{1,2}|\d{4}-\d{2}-\d{2})/;
+        const hasTemporalInfo = (text?: string): boolean => {
+          if (!text) {
+            return false;
+          }
+          return temporalRegex.test(text.toLowerCase());
+        };
+
+        const parseDateCandidate = (value?: string): Date | null => {
+          if (!value) {
+            return null;
+          }
+
+          const direct = new Date(value);
+          if (!isNaN(direct.getTime())) {
+            return direct;
+          }
+
+          if (hasTemporalInfo(value)) {
+            const parsed = parseDateFromPortuguese(value);
+            return isNaN(parsed.getTime()) ? null : parsed;
+          }
+
+          return null;
+        };
+
+        let reminderDate = parseDateCandidate(date);
+
+        let messageBasedDate: Date | null = null;
+        if (hasTemporalInfo(userMessage)) {
+          const parsedFromMessage = parseDateFromPortuguese(userMessage);
+          if (!isNaN(parsedFromMessage.getTime())) {
+            messageBasedDate = parsedFromMessage;
+          }
         }
 
+        if ((!reminderDate || isNaN(reminderDate.getTime())) && messageBasedDate) {
+          reminderDate = messageBasedDate;
+        }
+
+        if (!reminderDate || isNaN(reminderDate.getTime())) {
+          return 'Erro: Não consegui entender a data do lembrete. Informe algo como "hoje às 17h" ou use uma data no formato YYYY-MM-DD.';
+        }
+
+        const now = new Date();
+        const recurrenceValue = normalizeRecurrence(recurrence);
+        const recurrenceLower = recurrenceValue.toLowerCase();
+
+        if (reminderDate.getTime() <= now.getTime()) {
+          if (messageBasedDate && messageBasedDate.getTime() > now.getTime()) {
+            reminderDate = messageBasedDate;
+          }
+        }
+
+        if (reminderDate.getTime() <= now.getTime()) {
+          if (recurrenceLower === 'diario') {
+            while (reminderDate.getTime() <= now.getTime()) {
+              reminderDate.setDate(reminderDate.getDate() + 1);
+            }
+          } else if (recurrenceLower === 'semanal') {
+            while (reminderDate.getTime() <= now.getTime()) {
+              reminderDate.setDate(reminderDate.getDate() + 7);
+            }
+          } else if (recurrenceLower === 'mensal') {
+            while (reminderDate.getTime() <= now.getTime()) {
+              reminderDate.setMonth(reminderDate.getMonth() + 1);
+            }
+          } else {
+            const adjusted = new Date(now);
+            adjusted.setHours(reminderDate.getHours(), reminderDate.getMinutes(), 0, 0);
+            if (adjusted.getTime() <= now.getTime()) {
+              adjusted.setDate(adjusted.getDate() + 1);
+            }
+            reminderDate = adjusted;
+          }
+        }
+
+        if (reminderDate.getTime() <= now.getTime()) {
+          return 'Erro: A data do lembrete precisa ser no futuro. Ajuste o horário e tente novamente.';
+        }
+
+        reminderDate.setSeconds(0, 0);
+
+        const usuario = await usuariosService.getById(userId);
         const reminder = await lembretesService.create({
           lembrete: title,
           data_para_lembrar: reminderDate.toISOString(),
-          celular: null,
+          celular: usuario?.celular || null,
           usuario_id: userId,
-          recorrencia: recurrence || 'Unico',
+          recorrencia: recurrenceValue,
         });
 
         if (reminder) {
@@ -404,21 +521,57 @@ const executeFunctionCall = async (
       }
 
       case 'create_shopping_item': {
-        const { item, category } = args;
+        const { item, category, list, selection, selecao } = args;
         
         if (!item) {
           return 'Erro: O nome do item é obrigatório.';
         }
 
+        const userSelecoes = await listaComprasService.getSelecoes(userId);
+
+        const extractSelecao = (value: unknown): string | null => {
+          if (typeof value !== 'string') {
+            return null;
+          }
+          const trimmed = value.trim();
+          return trimmed.length > 0 ? trimmed : null;
+        };
+
+        let finalSelecao = extractSelecao(selecao) ?? extractSelecao(selection) ?? extractSelecao(list);
+
+        if (!finalSelecao) {
+          if (userSelecoes.length === 0) {
+            finalSelecao = null;
+          } else if (userSelecoes.length === 1) {
+            finalSelecao = userSelecoes[0];
+          } else {
+            const listas = userSelecoes.map((nome) => `- ${nome}`).join('\n');
+            return `Tenho mais de uma lista de compras. Em qual delas devo adicionar o item "${item}"?\nListas disponíveis:\n${listas}\nVocê pode informar uma dessas listas ou dizer "lista padrão" para usar a lista principal.`;
+          }
+        } else {
+          const selecaoNormalized = finalSelecao
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+
+          if (selecaoNormalized === 'lista padrao' || selecaoNormalized === 'padrao') {
+            finalSelecao = null;
+          }
+        }
+
+        const finalCategory = category?.toString().trim() || 'Outros';
+
         const shoppingItem = await listaComprasService.create({
           item,
-          categoria: category || 'Outros',
+          categoria: finalCategory,
           usuario_id: userId,
           status: 'pendente',
+          selecao: finalSelecao,
         });
 
         if (shoppingItem) {
-          return `✅ Item adicionado à lista de compras! "${item}" na categoria "${category || 'Outros'}".`;
+          const listaDestino = finalSelecao ? ` na lista "${finalSelecao}"` : '';
+          return `✅ Item adicionado à lista de compras${listaDestino}! "${item}" na categoria "${finalCategory}".`;
         } else {
           return 'Erro: Não foi possível adicionar o item à lista de compras.';
         }
@@ -939,6 +1092,8 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
         // Verificar se há tool_calls (chamadas de função)
         if (message.tool_calls && message.tool_calls.length > 0) {
           // Executar todas as funções solicitadas
+          const lastUserMessage = [...messages].reverse().find((msg: any) => msg.role === 'user')?.content;
+
           const toolResults = await Promise.all(
             message.tool_calls.map(async (toolCall: any) => {
               const functionName = toolCall.function.name;
@@ -946,7 +1101,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
               
               console.log(`[Function Call] ${functionName}`, functionArgs);
               
-              const result = await executeFunctionCall(functionName, functionArgs, userId);
+              const result = await executeFunctionCall(functionName, functionArgs, userId, lastUserMessage);
               
               return {
                 role: 'tool' as const,
