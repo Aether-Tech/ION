@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +23,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { lembretesService } from '../../services/supabaseService';
 import { Lembrete } from '../../services/supabase';
+import { ensureNotificationPermissions, syncReminderNotifications, cancelReminderNotification } from '../../utils/notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Event {
   id: string;
@@ -30,12 +33,27 @@ interface Event {
   date: string;
   time: string;
   lembreteId?: number;
+  dateTimeISO: string;
+  phoneNumber?: string | null;
 }
 
 // Helper function to parse date string (yyyy-MM-dd) in local timezone
 const parseLocalDate = (dateString: string): Date => {
   const [year, month, day] = dateString.split('-').map(Number);
   return new Date(year, month - 1, day);
+};
+
+const PREFERENCES_STORAGE_KEY = '@ion/reminder-notification-preferences';
+
+const getEventTriggerDate = (event: Event): Date => {
+  if (event.dateTimeISO) {
+    return new Date(event.dateTimeISO);
+  }
+
+  const [hours = 0, minutes = 0] = event.time.split(':').map(Number);
+  const date = parseLocalDate(event.date);
+  date.setHours(hours, minutes, 0, 0);
+  return date;
 };
 
 export default function CalendarScreen() {
@@ -45,6 +63,57 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notificationsReady, setNotificationsReady] = useState(false);
+  const [notificationPreferences, setNotificationPreferences] = useState({ app: true, whatsapp: true });
+  const [preferencesModalVisible, setPreferencesModalVisible] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const setupNotifications = async () => {
+      const granted = await ensureNotificationPermissions();
+      if (isMounted) {
+        setNotificationsReady(granted);
+        if (!granted) {
+          console.warn('Permissões de notificação não concedidas. Lembretes não serão enviados.');
+          Alert.alert(
+            'Notificações desativadas',
+            'Ative as permissões de notificação nas configurações do dispositivo para receber alertas de lembretes.'
+          );
+        }
+      }
+    };
+
+    setupNotifications();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadPreferences = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(PREFERENCES_STORAGE_KEY);
+        if (stored && isMounted) {
+          const parsed = JSON.parse(stored);
+          const appPref = typeof parsed?.app === 'boolean' ? parsed.app : true;
+          const whatsappPref = typeof parsed?.whatsapp === 'boolean' ? parsed.whatsapp : true;
+          setNotificationPreferences({ app: appPref, whatsapp: whatsappPref });
+        }
+      } catch (error) {
+        console.warn('Erro ao carregar preferências de lembretes:', error);
+      }
+    };
+
+    loadPreferences();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -90,6 +159,8 @@ export default function CalendarScreen() {
             date: format(dataLembrete, 'yyyy-MM-dd'),
             time: format(dataLembrete, 'HH:mm'),
             lembreteId: lembrete.id,
+            dateTimeISO: lembrete.data_para_lembrar!,
+            phoneNumber: lembrete.celular,
           };
         });
       
@@ -100,6 +171,60 @@ export default function CalendarScreen() {
       setLoading(false);
     }
   };
+
+  const handlePreferenceChange = (key: 'app' | 'whatsapp') => (value: boolean) => {
+    setNotificationPreferences((prev) => {
+      if (prev[key] === value) {
+        return prev;
+      }
+
+      const updated = { ...prev, [key]: value };
+      AsyncStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(updated)).catch((error) => {
+        console.warn('Erro ao salvar preferências de lembretes:', error);
+      });
+      return updated;
+    });
+  };
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    const syncNotifications = async () => {
+      const reminders = events.map((event) => {
+        const triggerDate = getEventTriggerDate(event);
+        return {
+          id: event.id,
+          title: `Lembrete: ${event.title}`,
+          body: event.description ? `${event.description} • ${event.time}` : `Horário: ${event.time}`,
+          triggerDate,
+          phoneNumber: event.phoneNumber ?? user?.usuario?.celular ?? null,
+          rawTitle: event.title,
+          rawDescription: event.description,
+          scheduledTime: event.time,
+          scheduledDate: event.date,
+        };
+      });
+
+      const pushEnabled = notificationsReady && notificationPreferences.app;
+      const webhookEnabled = notificationPreferences.whatsapp;
+
+      await syncReminderNotifications(reminders, {
+        pushEnabled,
+        webhookEnabled,
+      });
+    };
+
+    void syncNotifications();
+  }, [
+    events,
+    notificationsReady,
+    loading,
+    notificationPreferences.app,
+    notificationPreferences.whatsapp,
+    user?.usuario?.celular,
+  ]);
 
   const markedDates: { [key: string]: any } = {};
   events.forEach((event) => {
@@ -148,6 +273,8 @@ export default function CalendarScreen() {
           date: selectedDate,
           time: newTime,
           lembreteId: lembrete.id,
+          dateTimeISO: lembrete.data_para_lembrar || selectedDateObj.toISOString(),
+          phoneNumber: lembrete.celular,
         };
 
         setEvents([...events, event]);
@@ -180,12 +307,14 @@ export default function CalendarScreen() {
                 const success = await lembretesService.delete(event.lembreteId);
                 if (success) {
                   setEvents(events.filter((e) => e.id !== id));
+                  await cancelReminderNotification(id);
                 } else {
                   Alert.alert('Erro', 'Não foi possível excluir o evento');
                 }
               } else {
                 // Fallback para eventos sem lembreteId
                 setEvents(events.filter((e) => e.id !== id));
+                await cancelReminderNotification(id);
               }
             } catch (error) {
               console.error('Error deleting event:', error);
@@ -225,10 +354,21 @@ export default function CalendarScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* Header */}
         <BlurView intensity={20} style={styles.header}>
-          <Text style={styles.headerTitle}>Calendário</Text>
-          <Text style={styles.headerSubtitle}>
-            {selectedEvents.length} eventos hoje
-          </Text>
+          <View style={styles.headerContent}>
+            <View>
+              <Text style={styles.headerTitle}>Calendário</Text>
+              <Text style={styles.headerSubtitle}>
+                {selectedEvents.length} eventos hoje
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => setPreferencesModalVisible(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="settings-outline" size={22} color={Colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
         </BlurView>
 
         <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -313,6 +453,56 @@ export default function CalendarScreen() {
         </TouchableOpacity>
 
         <Modal
+          visible={preferencesModalVisible}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setPreferencesModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.settingsModalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Configurações de lembretes</Text>
+                <TouchableOpacity onPress={() => setPreferencesModalVisible(false)}>
+                  <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.preferenceItem}>
+                <View style={styles.preferenceInfo}>
+                  <Text style={styles.preferenceTitle}>Notificações no app</Text>
+                  <Text style={styles.preferenceDescription}>
+                    Receba alertas diretamente no dispositivo.
+                  </Text>
+                </View>
+                <Switch
+                  value={notificationPreferences.app}
+                  onValueChange={handlePreferenceChange('app')}
+                  trackColor={{ false: Colors.border, true: Colors.primary }}
+                  ios_backgroundColor={Colors.border}
+                />
+              </View>
+
+              <View style={styles.preferenceDivider} />
+
+              <View style={styles.preferenceItem}>
+                <View style={styles.preferenceInfo}>
+                  <Text style={styles.preferenceTitle}>Envio via WhatsApp</Text>
+                  <Text style={styles.preferenceDescription}>
+                    Disparar lembretes para o seu WhatsApp quando chegar a hora.
+                  </Text>
+                </View>
+                <Switch
+                  value={notificationPreferences.whatsapp}
+                  onValueChange={handlePreferenceChange('whatsapp')}
+                  trackColor={{ false: Colors.border, true: Colors.primary }}
+                  ios_backgroundColor={Colors.border}
+                />
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
           visible={modalVisible}
           animationType="slide"
           transparent
@@ -386,6 +576,11 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
@@ -395,6 +590,13 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
   headerSubtitle: {
     fontSize: 16,
     color: Colors.textSecondary,
+  },
+  settingsButton: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: Colors.glassBackground,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
   },
   content: {
     flex: 1,
@@ -544,6 +746,39 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.textInverse,
+  },
+  settingsModalContent: {
+    backgroundColor: Colors.backgroundDark,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 32,
+  },
+  preferenceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  preferenceInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
+  preferenceTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  preferenceDescription: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginTop: 4,
+  },
+  preferenceDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.border,
+    opacity: 0.6,
+    marginVertical: 8,
   },
   });
 }
