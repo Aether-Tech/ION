@@ -33,15 +33,18 @@ export default function LoginScreen() {
     }
 
     // Validar formato básico (números e +)
-    const cleanPhone = phoneNumber.replace(/\D/g, '');
-    if (cleanPhone.length < 10) {
+    const digitsOnly = phoneNumber.replace(/\D/g, '');
+    const localNumber = digitsOnly.startsWith('55') ? digitsOnly.slice(2) : digitsOnly;
+
+    if (localNumber.length < 10) {
       Alert.alert('Erro', 'Por favor, insira um número de telefone válido');
       return;
     }
 
     setLoading(true);
     try {
-      await login(cleanPhone);
+      const normalizedPhone = digitsOnly.startsWith('55') ? digitsOnly : `55${digitsOnly}`;
+      await login(normalizedPhone);
       router.replace('/(tabs)/chat');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível fazer login. Verifique se o número está cadastrado.';
@@ -101,6 +104,12 @@ export default function LoginScreen() {
               ) : (
                 <Text style={styles.buttonText}>Entrar</Text>
               )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => router.push('/subscribe-info')}
+            >
+              <Text style={styles.secondaryButtonText}>Criar uma conta</Text>
             </TouchableOpacity>
           </View>
 
@@ -235,6 +244,17 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.textInverse,
+  },
+  secondaryButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    textDecorationLine: 'underline',
   },
   footer: {
     marginTop: 32,
