@@ -14,7 +14,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subWeeks, subYears, isWithinInterval, startOfQuarter, endOfQuarter, subQuarters } from 'date-fns';
+import * as DocumentPicker from 'expo-document-picker';
+import { Paths } from 'expo-file-system';
+import * as FileSystemLegacy from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subWeeks, subYears, isWithinInterval, startOfQuarter, endOfQuarter, subQuarters, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { useAppColors } from '../../hooks/useAppColors';
 import { IONLogo } from '../../components/IONLogo';
@@ -54,6 +58,8 @@ export default function FinancesScreen() {
   const [newDescription, setNewDescription] = useState('');
   const [newAmount, setNewAmount] = useState('');
   const [newCategory, setNewCategory] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // Carregar dados do Supabase
   useEffect(() => {
@@ -445,6 +451,281 @@ export default function FinancesScreen() {
     } catch (error) {
       console.error('Error adding transaction:', error);
       Alert.alert('Erro', 'Não foi possível adicionar a transação');
+    }
+  };
+
+  const splitCSVLine = (line: string) => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    result.push(current.trim());
+    return result;
+  };
+
+  const parseCSV = (csv: string): Record<string, string>[] => {
+    const cleanCsv = csv.replace(/^\uFEFF/, '');
+    const lines = cleanCsv
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    if (lines.length < 2) {
+      return [];
+    }
+
+    const headers = splitCSVLine(lines[0]).map((header) => header.toLowerCase());
+
+    return lines.slice(1).map((line) => {
+      const values = splitCSVLine(line);
+      const row: Record<string, string> = {};
+      headers.forEach((header, index) => {
+        row[header] = values[index]?.trim() || '';
+      });
+      return row;
+    });
+  };
+
+  const normalizeTransactionType = (typeValue: string): 'income' | 'expense' | null => {
+    const normalized = typeValue.trim().toLowerCase();
+    if (['income', 'entrada', 'receita', 'ganho'].includes(normalized)) {
+      return 'income';
+    }
+    if (['expense', 'saida', 'despesa', 'gasto'].includes(normalized)) {
+      return 'expense';
+    }
+    return null;
+  };
+
+  const parseDateValue = (value: string): Date | null => {
+    if (!value) return null;
+    const trimmed = value.trim();
+    const direct = new Date(trimmed);
+    if (!isNaN(direct.getTime())) return direct;
+
+    const formats = ['dd/MM/yyyy', 'MM/dd/yyyy', 'dd-MM-yyyy', 'yyyy-MM-dd'];
+    for (const formatString of formats) {
+      const parsedDate = parse(trimmed, formatString, new Date());
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate;
+      }
+    }
+    return null;
+  };
+
+  const getOrCreateCategoria = async (categoriaNome: string): Promise<CategoriaTransacao | null> => {
+    if (!user?.usuarioId) {
+      return null;
+    }
+    const normalized = (categoriaNome || 'Outros').trim();
+    const existing = categorias.find(
+      (categoria) => categoria.descricao.toLowerCase() === normalized.toLowerCase()
+    );
+    if (existing) {
+      return existing;
+    }
+
+    const novaCategoria = await categoriasService.create({
+      descricao: normalized,
+      usuario_id: user.usuarioId,
+      date: null,
+    });
+
+    if (novaCategoria) {
+      setCategorias((prev) => [...prev, novaCategoria]);
+      return novaCategoria;
+    }
+    return null;
+  };
+
+  const buildCacheFileUri = (fileName: string) => {
+    const legacyFS = FileSystemLegacy as any;
+    const baseUri =
+      legacyFS?.cacheDirectory ||
+      legacyFS?.documentDirectory ||
+      Paths?.cache?.uri ||
+      Paths?.document?.uri ||
+      'file:///';
+    const normalizedBase = baseUri.endsWith('/') ? baseUri : `${baseUri}/`;
+    return `${normalizedBase}${fileName}`;
+  };
+
+  const importFromGoogleSheets = async () => {
+    if (!user?.usuarioId) {
+      Alert.alert('Erro', 'Usuário não autenticado');
+      return;
+    }
+
+    try {
+      setImporting(true);
+      const pickerResult = await DocumentPicker.getDocumentAsync({
+        type: ['text/csv', 'text/comma-separated-values', 'application/vnd.ms-excel'],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (pickerResult.canceled || !pickerResult.assets || pickerResult.assets.length === 0) {
+        return;
+      }
+
+      const fileUri = pickerResult.assets[0].uri;
+      const fileContent = await FileSystemLegacy.readAsStringAsync(fileUri, {
+        encoding: 'utf8',
+      });
+      const rows = parseCSV(fileContent);
+
+      if (rows.length === 0) {
+        Alert.alert('Arquivo vazio', 'Não encontramos transações no arquivo selecionado.');
+        return;
+      }
+
+      let successCount = 0;
+      const newTransactions: Transaction[] = [];
+
+      for (const row of rows) {
+        const description = row['description'] || row['descricao'] || row['nome'] || '';
+        const amountStr = row['amount'] || row['valor'] || '';
+        const typeStr = row['type'] || row['tipo'] || '';
+        const dateStr = row['date'] || row['data'] || '';
+        const categoryStr = row['category'] || row['categoria'] || 'Outros';
+
+        if (!description || !amountStr || !typeStr || !dateStr) {
+          continue;
+        }
+
+        const type = normalizeTransactionType(typeStr);
+        if (!type) {
+          continue;
+        }
+
+        const amount = parseFloat(amountStr.replace(',', '.'));
+        if (isNaN(amount) || amount <= 0) {
+          continue;
+        }
+
+        const parsedDate = parseDateValue(dateStr);
+        if (!parsedDate) {
+          continue;
+        }
+
+        const categoria = await getOrCreateCategoria(categoryStr);
+        if (!categoria) {
+          continue;
+        }
+
+        const mes = format(parsedDate, 'yyyy-MM');
+        const created = await transacoesService.create({
+          data: format(parsedDate, 'yyyy-MM-dd'),
+          valor: amount,
+          descricao: description,
+          recebedor: null,
+          pagador: null,
+          mes,
+          categoria_id: categoria.id,
+          tipo: type === 'income' ? 'entrada' : 'saida',
+          usuario_id: user.usuarioId,
+        });
+
+        if (created) {
+          const transaction: Transaction = {
+            id: created.id.toString(),
+            description: created.descricao,
+            amount: Number(created.valor),
+            type,
+            date: new Date(created.data),
+            category: categoria.descricao,
+            categoria_id: created.categoria_id,
+          };
+          newTransactions.push(transaction);
+          successCount += 1;
+        }
+      }
+
+      if (newTransactions.length > 0) {
+        setTransactions((prev) => [...newTransactions, ...prev]);
+      }
+
+      Alert.alert(
+        'Importação concluída',
+        successCount > 0
+          ? `${successCount} transações foram importadas do Google Sheets.`
+          : 'Não foi possível importar nenhuma transação. Verifique o arquivo e tente novamente.'
+      );
+    } catch (error) {
+      console.error('Error importing from Google Sheets:', error);
+      Alert.alert('Erro', 'Não foi possível importar o arquivo. Verifique o formato e tente novamente.');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const exportToGoogleSheets = async () => {
+    if (transactions.length === 0) {
+      Alert.alert('Sem dados', 'Registre uma transação antes de exportar.');
+      return;
+    }
+
+    try {
+      setExporting(true);
+      const headers = ['description', 'amount', 'type', 'date', 'category'];
+      const rows = transactions.map((transaction) => {
+        const values = [
+          transaction.description,
+          transaction.amount.toFixed(2),
+          transaction.type,
+          format(transaction.date, 'yyyy-MM-dd'),
+          transaction.category,
+        ];
+        return values
+          .map((value) => {
+            const safeValue = value ? value.toString() : '';
+            return safeValue.includes(',') ? `"${safeValue.replace(/"/g, '""')}"` : safeValue;
+          })
+          .join(',');
+      });
+
+      const csvContent = [headers.join(','), ...rows].join('\n');
+      const fileUri = buildCacheFileUri(`ion-transacoes-${Date.now()}.csv`);
+      await FileSystemLegacy.writeAsStringAsync(fileUri, csvContent, {
+        encoding: 'utf8',
+      });
+
+      const isShareAvailable = await Sharing.isAvailableAsync();
+      if (!isShareAvailable) {
+        Alert.alert(
+          'Compartilhamento indisponível',
+          'Não foi possível abrir o menu de compartilhamento neste dispositivo.'
+        );
+        return;
+      }
+
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'text/csv',
+        dialogTitle: 'Exportar para Google Sheets',
+        UTI: 'public.comma-separated-values-text',
+      });
+    } catch (error) {
+      console.error('Error exporting to Google Sheets:', error);
+      Alert.alert('Erro', 'Não foi possível exportar as transações.');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -981,6 +1262,47 @@ export default function FinancesScreen() {
               </View>
             )}
           </BlurView>
+
+          {/* Exportação de Transações */}
+          <BlurView intensity={20} style={[styles.integrationCard, styles.integrationCardSpacing]}>
+            <View style={styles.integrationHeader}>
+              <Ionicons name="swap-vertical" size={24} color={Colors.ionBlue} />
+              <Text style={styles.integrationTitle}>Exportar Transações</Text>
+            </View>
+            <Text style={styles.integrationDescription}>
+              Gere um CSV com todas as transações do painel ou importe um arquivo vindo do Google Sheets/Excel para manter tudo sincronizado.
+            </Text>
+            <View style={styles.integrationButtons}>
+              <TouchableOpacity
+                style={[styles.integrationButton, styles.integrationButtonSecondary]}
+                onPress={importFromGoogleSheets}
+                disabled={importing}
+              >
+                {importing ? (
+                  <ActivityIndicator size="small" color={Colors.textPrimary} />
+                ) : (
+                  <Ionicons name="cloud-download" size={18} color={Colors.textPrimary} />
+                )}
+                <Text style={styles.integrationButtonText}>
+                  {importing ? 'Importando...' : 'Importar CSV'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.integrationButton, styles.integrationButtonPrimary]}
+                onPress={exportToGoogleSheets}
+                disabled={exporting}
+              >
+                {exporting ? (
+                  <ActivityIndicator size="small" color={Colors.backgroundDark} />
+                ) : (
+                  <Ionicons name="cloud-upload" size={18} color={Colors.backgroundDark} />
+                )}
+                <Text style={[styles.integrationButtonText, styles.integrationButtonTextInverse]}>
+                  {exporting ? 'Exportando...' : 'Exportar'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </BlurView>
         </ScrollView>
 
         {/* FAB */}
@@ -1180,6 +1502,63 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     },
     periodButtonTextActive: {
       color: Colors.textInverse,
+    },
+    integrationCard: {
+      marginTop: 28,
+      marginBottom: 28,
+      borderRadius: 20,
+      padding: 20,
+      backgroundColor: Colors.glassBackground,
+      borderWidth: 1,
+      borderColor: Colors.glassBorder,
+      gap: 12,
+    },
+    integrationHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    integrationTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: Colors.textPrimary,
+    },
+    integrationDescription: {
+      fontSize: 14,
+      color: Colors.textSecondary,
+      lineHeight: 20,
+    },
+    integrationButtons: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    integrationButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 14,
+      paddingVertical: 14,
+      gap: 8,
+    },
+    integrationButtonPrimary: {
+      backgroundColor: Colors.ionBlue,
+    },
+    integrationButtonSecondary: {
+      backgroundColor: Colors.backgroundDarkTertiary,
+      borderWidth: 1,
+      borderColor: Colors.border,
+    },
+    integrationButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: Colors.textPrimary,
+    },
+    integrationButtonTextInverse: {
+      color: Colors.backgroundDark,
+    },
+    integrationCardSpacing: {
+      marginTop: 32,
     },
     balanceCard: {
       padding: 24,

@@ -23,7 +23,11 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.aether.ion"
+      "package": "com.aether.ion",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -45,6 +49,12 @@
         }
       ]
     ],
-    "scheme": "ion"
+    "scheme": "ion",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8bc85d34-162b-4b6f-bcca-88642b5de117"
+      }
+    }
   }
 }
