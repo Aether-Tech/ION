@@ -1306,7 +1306,7 @@ export default function FinancesScreen() {
         </ScrollView>
 
         {/* FAB */}
-        <View style={[styles.fabContainer, { bottom: Math.max(insets.bottom, 16) + 60 }]}>
+        <View style={[styles.fabContainer, { bottom: 70 + Math.max(insets.bottom, 8) + 16 }]}>
           <TouchableOpacity
             style={styles.fab}
             onPress={() => setModalVisible(true)}
@@ -1324,7 +1324,7 @@ export default function FinancesScreen() {
           onRequestClose={() => setModalVisible(false)}
         >
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+            <View style={[styles.modalContent, { paddingBottom: 70 + Math.max(insets.bottom, 8) + 24 }]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Nova Transação</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -2050,7 +2050,6 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       padding: 24,
-      paddingBottom: 40,
       maxHeight: '85%',
     },
     modalHeader: {

@@ -5,17 +5,32 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function Index() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, needsOnboarding } = useAuth();
 
   useEffect(() => {
+    console.log('Index - Estado:', { 
+      hasUser: !!user, 
+      loading, 
+      needsOnboarding,
+      userUid: user?.firebaseUser?.uid 
+    });
+    
     if (!loading) {
       if (user) {
-        router.replace('/(tabs)/chat');
+        // Se o usuário precisa de onboarding, redirecionar para onboarding
+        if (needsOnboarding) {
+          console.log('Redirecionando para onboarding');
+          router.replace('/onboarding');
+        } else {
+          console.log('Redirecionando para chat');
+          router.replace('/(tabs)/chat');
+        }
       } else {
+        console.log('Redirecionando para login');
         router.replace('/login');
       }
     }
-  }, [user, loading]);
+  }, [user, loading, needsOnboarding]);
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>

@@ -19,35 +19,39 @@ import { useAppColors } from '../hooks/useAppColors';
 import { IONLogo } from '../components/IONLogo';
 
 export default function LoginScreen() {
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
   const Colors = useAppColors();
   const styles = getStyles(Colors);
 
   const handleLogin = async () => {
-    if (!phoneNumber.trim()) {
-      Alert.alert('Erro', 'Por favor, insira seu número de telefone');
+    if (!email.trim()) {
+      Alert.alert('Erro', 'Por favor, insira seu email');
       return;
     }
 
-    // Validar formato básico (números e +)
-    const digitsOnly = phoneNumber.replace(/\D/g, '');
-    const localNumber = digitsOnly.startsWith('55') ? digitsOnly.slice(2) : digitsOnly;
+    if (!password.trim()) {
+      Alert.alert('Erro', 'Por favor, insira sua senha');
+      return;
+    }
 
-    if (localNumber.length < 10) {
-      Alert.alert('Erro', 'Por favor, insira um número de telefone válido');
+    // Validação básica de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Erro', 'Por favor, insira um email válido');
       return;
     }
 
     setLoading(true);
     try {
-      const normalizedPhone = digitsOnly.startsWith('55') ? digitsOnly : `55${digitsOnly}`;
-      await login(normalizedPhone);
-      router.replace('/(tabs)/chat');
+      await login(email.trim(), password);
+      // O redirecionamento será feito automaticamente pelo index.tsx baseado no estado de autenticação
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Não foi possível fazer login. Verifique se o número está cadastrado.';
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível fazer login. Verifique suas credenciais.';
       Alert.alert('Erro no Login', errorMessage);
     } finally {
       setLoading(false);
@@ -79,19 +83,45 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.formContainer}>
-            <Text style={styles.label}>Número de Telefone</Text>
+            <Text style={styles.label}>Email</Text>
             <BlurView intensity={20} style={styles.inputContainer}>
-              <Ionicons name="call-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
+              <Ionicons name="mail-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Ex: 5527999999999"
+                placeholder="Ex: seu@email.com"
                 placeholderTextColor={Colors.textSecondary}
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                keyboardType="phone-pad"
-                autoComplete="tel"
-                textContentType="telephoneNumber"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoComplete="email"
+                textContentType="emailAddress"
+                autoCapitalize="none"
               />
+            </BlurView>
+
+            <Text style={styles.label}>Senha</Text>
+            <BlurView intensity={20} style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Digite sua senha"
+                placeholderTextColor={Colors.textSecondary}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoComplete="password"
+                textContentType="password"
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons 
+                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                  size={24} 
+                  color={Colors.textSecondary} 
+                />
+              </TouchableOpacity>
             </BlurView>
 
             <TouchableOpacity
@@ -105,9 +135,10 @@ export default function LoginScreen() {
                 <Text style={styles.buttonText}>Entrar</Text>
               )}
             </TouchableOpacity>
+            
             <TouchableOpacity
               style={styles.secondaryButton}
-              onPress={() => router.push('/subscribe-info')}
+              onPress={() => router.push('/register')}
             >
               <Text style={styles.secondaryButtonText}>Criar uma conta</Text>
             </TouchableOpacity>

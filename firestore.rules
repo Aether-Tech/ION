@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Regras para a coleção 'users'
+    // Usuários autenticados podem ler e escrever apenas seus próprios dados
+    match /users/{userId} {
+      // Permitir leitura e escrita apenas se o usuário estiver autenticado
+      // e o userId do documento corresponder ao uid do usuário autenticado
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Permitir criação de documento se o usuário estiver autenticado
+      // e o userId corresponder ao uid do usuário autenticado
+      allow create: if request.auth != null 
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == userId;
+      
+      // Permitir atualização apenas se o usuário estiver autenticado
+      // e o userId corresponder ao uid do usuário autenticado
+      allow update: if request.auth != null 
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == userId;
+    }
+    
+    // Bloquear acesso a todas as outras coleções por padrão
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+

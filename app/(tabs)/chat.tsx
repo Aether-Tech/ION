@@ -706,7 +706,7 @@ export default function ChatScreen() {
   // Calcular o espaçamento do input baseado no estado do teclado
   const inputBottomMargin = keyboardVisible 
     ? 0 // Quando o teclado está aberto, sem margem extra
-    : Math.max(insets.bottom, 8) + 72; // Quando fechado, espaço suficiente para a tab bar (60) + padding (12)
+    : 70 + Math.max(insets.bottom, 8) + 8; // Quando fechado, espaço suficiente para a tab bar (70 + insets.bottom) + padding extra
 
   return (
     <View style={styles.container}>

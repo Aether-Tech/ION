@@ -18,74 +18,76 @@ import { useRouter } from 'expo-router';
 import { useAppColors } from '../hooks/useAppColors';
 import { IONLogo } from '../components/IONLogo';
 import { useAuth } from '../contexts/AuthContext';
-import { usuariosService } from '../services/supabaseService';
-import { Usuario } from '../services/supabase';
 
 export default function RegisterScreen() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const router = useRouter();
-  const { login } = useAuth();
+  const { register } = useAuth();
   const Colors = useAppColors();
   const styles = getStyles(Colors);
 
-  const normalizePhoneNumber = (value: string) => {
-    const cleanPhone = value.replace(/\D/g, '');
-    const normalizedPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
-    return normalizedPhone;
-  };
-
   const handleRegister = async () => {
-    if (!nome.trim() || !email.trim() || !phoneNumber.trim()) {
-      Alert.alert('Campos obrigatórios', 'Informe nome, e-mail e número de telefone.');
+    if (!nome.trim()) {
+      Alert.alert('Erro', 'Por favor, insira seu nome');
       return;
     }
 
-    const normalizedPhone = normalizePhoneNumber(phoneNumber);
-    if (normalizedPhone.length < 12 || normalizedPhone.length > 13) {
-      Alert.alert('Número inválido', 'Use um número com DDD. Ex: 27999999999');
+    if (!email.trim()) {
+      Alert.alert('Erro', 'Por favor, insira seu email');
+      return;
+    }
+
+    if (!password.trim()) {
+      Alert.alert('Erro', 'Por favor, insira uma senha');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Erro', 'As senhas não coincidem');
       return;
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      Alert.alert('E-mail inválido', 'Insira um e-mail válido.');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      Alert.alert('Erro', 'Por favor, insira um email válido');
       return;
     }
 
     setLoading(true);
     try {
-      const alreadyExists = await usuariosService.existsByCelular(normalizedPhone);
-      if (alreadyExists) {
-        Alert.alert('Usuário existente', 'Já existe uma conta com este número de telefone.');
-        setLoading(false);
-        return;
-      }
-
-      const newUser: Omit<Usuario, 'id' | 'created_at'> = {
-        nome: nome.trim(),
-        email: normalizedEmail,
-        celular: normalizedPhone,
-        status: 'ativo',
-        foto_perfil: null,
-      };
-
-      const createdUser = await usuariosService.create(newUser);
-
-      if (!createdUser) {
-        throw new Error('Não foi possível criar a conta. Tente novamente.');
-      }
-
-      await login(normalizedPhone);
-      router.replace('/(tabs)/chat');
+      await register(normalizedEmail, password, nome.trim());
+      
+      // Mostrar feedback de sucesso
+      setSuccess(true);
+      
+      // Timeout de segurança: se após 3 segundos não redirecionou, forçar redirecionamento
+      setTimeout(() => {
+        // Verificar se ainda está na tela de registro (não redirecionou)
+        // Se sim, forçar redirecionamento para index que vai decidir o destino
+        router.replace('/');
+      }, 3000);
+      
+      // O redirecionamento será feito automaticamente pelo index.tsx
+      // O onAuthStateChanged vai detectar o novo usuário e redirecionar para onboarding
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro ao criar a conta. Tente novamente mais tarde.';
       Alert.alert('Erro no cadastro', errorMessage);
-    } finally {
       setLoading(false);
+      setSuccess(false);
     }
   };
 
@@ -148,28 +150,71 @@ export default function RegisterScreen() {
                 />
               </BlurView>
 
-              <Text style={styles.label}>Número de telefone</Text>
+              <Text style={styles.label}>Senha</Text>
               <BlurView intensity={20} style={styles.inputContainer}>
-                <Ionicons name="call-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
+                <Ionicons name="lock-closed-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Ex: 27999999999"
+                  placeholder="Mínimo 6 caracteres"
                   placeholderTextColor={Colors.textSecondary}
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  keyboardType="phone-pad"
-                  autoComplete="tel"
-                  textContentType="telephoneNumber"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoComplete="password-new"
+                  textContentType="newPassword"
                 />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons 
+                    name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                    size={24} 
+                    color={Colors.textSecondary} 
+                  />
+                </TouchableOpacity>
+              </BlurView>
+
+              <Text style={styles.label}>Confirmar Senha</Text>
+              <BlurView intensity={20} style={styles.inputContainer}>
+                <Ionicons name="lock-closed-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Digite a senha novamente"
+                  placeholderTextColor={Colors.textSecondary}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  autoComplete="password-new"
+                  textContentType="newPassword"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons 
+                    name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
+                    size={24} 
+                    color={Colors.textSecondary} 
+                  />
+                </TouchableOpacity>
               </BlurView>
 
               <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
+                style={[styles.button, (loading || success) && styles.buttonDisabled]}
                 onPress={handleRegister}
-                disabled={loading}
+                disabled={loading || success}
               >
                 {loading ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <ActivityIndicator color="#FFFFFF" />
+                    <Text style={styles.buttonText}>Criando conta...</Text>
+                  </View>
+                ) : success ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                    <Text style={styles.buttonText}>Conta criada! Redirecionando...</Text>
+                  </View>
                 ) : (
                   <Text style={styles.buttonText}>Criar conta</Text>
                 )}

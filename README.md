@@ -45,6 +45,8 @@ O **ION** é uma aplicação mobile desenvolvida para Android e iOS que oferece 
 
 ### Backend e Storage
 - **Supabase** 2.79.0 - Backend as a Service (BaaS)
+- **Firebase Authentication** - Autenticação com Email/Senha
+- **Firestore** - Banco de dados NoSQL para perfis de usuário
 - **AsyncStorage** - Persistência local de dados
 
 ### Funcionalidades
@@ -130,6 +132,17 @@ Para habilitar upload de arquivos, consulte [STORAGE_SETUP.md](./STORAGE_SETUP.m
 
 ## ▶️ Executando o Projeto
 
+### Configuração do Firebase
+
+O app utiliza Firebase Authentication e Firestore para gerenciar autenticação e perfis de usuário. Siga os passos em [FIREBASE_SETUP.md](./FIREBASE_SETUP.md) para:
+
+1. Configurar Firebase Authentication (Email/Password)
+2. Configurar Firestore Database
+3. Configurar regras de segurança do Firestore
+4. Entender o fluxo de autenticação e onboarding
+
+> 📖 Para mais detalhes sobre configuração do Firebase, consulte [FIREBASE_SETUP.md](./FIREBASE_SETUP.md) e [FIRESTORE_RULES_SETUP.md](./FIRESTORE_RULES_SETUP.md)
+
 ### ⚠️ Resolvendo o erro "EMFILE: too many open files"
 
 Este erro acontece porque o macOS tem um limite baixo de arquivos abertos. Use uma das soluções abaixo:
@@ -194,6 +207,8 @@ ION-APP/
 │   ├── _layout.tsx         # Layout raiz da aplicação
 │   ├── index.tsx           # Tela inicial (redirecionamento)
 │   ├── login.tsx           # Tela de login/autenticação
+│   ├── register.tsx        # Tela de registro
+│   ├── onboarding.tsx      # Tela de onboarding (novos usuários)
 │   ├── edit-profile.tsx    # Tela de edição de perfil
 │   └── (tabs)/             # Grupo de telas com navegação por abas
 │       ├── _layout.tsx     # Layout das abas
@@ -205,7 +220,8 @@ ION-APP/
 │
 ├── assets/                 # Recursos estáticos (imagens, ícones)
 ├── components/             # Componentes reutilizáveis
-│   └── IONLogo.tsx         # Componente do logo
+│   ├── IONLogo.tsx         # Componente do logo
+│   └── Onboarding.tsx      # Componente de onboarding em slides
 │
 ├── constants/              # Constantes e configurações
 │   └── Colors.ts           # Design system de cores
@@ -220,7 +236,9 @@ ION-APP/
 ├── services/               # Serviços e integrações
 │   ├── api.ts              # Cliente HTTP e endpoints da API
 │   ├── supabase.ts         # Cliente Supabase
-│   └── supabaseService.ts  # Serviços do Supabase
+│   ├── supabaseService.ts  # Serviços do Supabase
+│   ├── firebase.ts         # Configuração do Firebase
+│   └── firestoreService.ts # Serviços do Firestore
 │
 ├── types/                  # Definições de tipos TypeScript
 │   └── index.ts            # Tipos globais
@@ -265,6 +283,8 @@ O app utiliza um design system consistente:
 ## 📚 Documentação Adicional
 
 - [SETUP.md](./SETUP.md) - Guia de configuração detalhado
+- [FIREBASE_SETUP.md](./FIREBASE_SETUP.md) - Configuração do Firebase e Firestore
+- [FIRESTORE_RULES_SETUP.md](./FIRESTORE_RULES_SETUP.md) - Configuração das regras de segurança do Firestore
 - [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) - Configuração do Supabase
 - [STORAGE_SETUP.md](./STORAGE_SETUP.md) - Configuração de Storage
 - [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) - Estrutura detalhada do projeto
@@ -328,7 +348,9 @@ Certifique-se de que o Android SDK está configurado corretamente e que o emulad
 ## 🚧 Status do Projeto
 
 ### ✅ Funcionalidades Implementadas
-- [x] Autenticação com número de telefone
+- [x] Autenticação com Firebase (Email/Senha)
+- [x] Sistema de Onboarding para novos usuários
+- [x] Integração Firebase + Supabase
 - [x] Chat com IA (interface completa)
 - [x] Sistema de lembretes (CRUD completo)
 - [x] Controle de finanças (receitas e despesas)
@@ -338,6 +360,7 @@ Certifique-se de que o Android SDK está configurado corretamente e que o emulad
 - [x] Envio de mensagens de áudio
 - [x] Envio de imagens e documentos
 - [x] Design responsivo e acessível
+- [x] Navegação por abas com bottom bar customizada
 
 ### 🔄 Em Desenvolvimento
 - [ ] Integração completa com API de IA

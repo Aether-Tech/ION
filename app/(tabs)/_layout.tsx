@@ -39,14 +39,17 @@ export default function TabsLayout() {
           backgroundColor: Colors.backgroundDarkTertiary,
           borderTopWidth: 0.5,
           borderTopColor: Colors.border,
-          height: 30 + insets.bottom,
-          paddingBottom: Math.max(insets.bottom + 8, 16),
-          paddingTop: 6,
+          height: 70 + insets.bottom,
+          paddingBottom: Math.max(insets.bottom, 8),
+          paddingTop: 12,
           position: 'absolute',
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '600',
+        },
+        tabBarIconStyle: {
+          marginTop: 4,
         },
         tabBarBackground: () => (
           <BlurView
@@ -67,17 +70,8 @@ export default function TabsLayout() {
         name="chat"
         options={{
           title: 'Chat',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubbles" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="reminders"
-        options={{
-          title: 'Tarefas',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="checkmark-circle" size={size} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="chatbubbles" size={32} color={color} />
           ),
         }}
       />
@@ -85,8 +79,8 @@ export default function TabsLayout() {
         name="shopping"
         options={{
           title: 'Compras',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cart" size={size} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="cart" size={32} color={color} />
           ),
         }}
       />
@@ -94,8 +88,8 @@ export default function TabsLayout() {
         name="finances"
         options={{
           title: 'Finanças',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="wallet" size={size} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="wallet" size={32} color={color} />
           ),
         }}
       />
@@ -103,8 +97,8 @@ export default function TabsLayout() {
         name="calendar"
         options={{
           title: 'Calendário',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar" size={size} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="calendar" size={32} color={color} />
           ),
         }}
       />
@@ -112,8 +106,8 @@ export default function TabsLayout() {
         name="savings"
         options={{
           title: 'Caixinhas',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cash" size={size} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="cash" size={32} color={color} />
           ),
         }}
       />
@@ -121,9 +115,15 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Perfil',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="person" size={32} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="reminders"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
