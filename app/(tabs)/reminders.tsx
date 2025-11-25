@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { HugeIcon } from '../../components/HugeIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { format, differenceInDays, differenceInHours, differenceInCalendarDays } from 'date-fns';
@@ -765,7 +765,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional, sem explicaç
         <View style={styles.checkboxContainer}>
           <View style={[styles.checkbox, item.completed && styles.checkboxChecked]}>
             {item.completed && (
-              <Ionicons name="checkmark" size={16} color={Colors.textInverse} />
+              <HugeIcon name="checkmark" size={16} color={Colors.textInverse} />
             )}
           </View>
         </View>
@@ -794,14 +794,14 @@ Responda APENAS com o número da hora (0-23), sem texto adicional, sem explicaç
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={styles.editButton}
         >
-          <Ionicons name="pencil-outline" size={20} color={Colors.ionBlue} />
+          <HugeIcon name="pencil-outline" size={20} color={Colors.ionBlue} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => deleteReminder(item.id)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={styles.deleteButton}
         >
-          <Ionicons name="trash-outline" size={20} color={Colors.error} />
+          <HugeIcon name="trash-outline" size={20} color={Colors.error} />
         </TouchableOpacity>
       </View>
     </BlurView>
@@ -845,14 +845,14 @@ Responda APENAS com o número da hora (0-23), sem texto adicional, sem explicaç
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerButton}>
-            <Ionicons name="checkmark-circle" size={28} color={Colors.ionBlue} />
+            <HugeIcon name="checkmark-circle" size={28} color={Colors.ionBlue} />
           </View>
           <Text style={styles.headerTitle}>Suas Tarefas</Text>
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => setModalVisible(true)}
           >
-            <Ionicons name="add" size={28} color={Colors.textPrimary} />
+            <HugeIcon name="add" size={28} color={Colors.textPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -863,7 +863,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional, sem explicaç
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="checkmark-circle-outline" size={64} color={Colors.textSecondary} />
+              <HugeIcon name="checkmark-circle-outline" size={64} color={Colors.textSecondary} />
               <Text style={styles.emptyText}>Nenhuma tarefa</Text>
             </View>
           }
@@ -934,7 +934,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional, sem explicaç
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Nova Tarefa</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                  <HugeIcon name="close" size={28} color={Colors.textPrimary} />
                 </TouchableOpacity>
               </View>
 
@@ -1028,7 +1028,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional, sem explicaç
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Editar Tarefa</Text>
                 <TouchableOpacity onPress={closeEditModal}>
-                  <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                  <HugeIcon name="close" size={28} color={Colors.textPrimary} />
                 </TouchableOpacity>
               </View>
 
@@ -1122,7 +1122,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional, sem explicaç
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Escolher Horário</Text>
                 <TouchableOpacity onPress={() => setShowTimePicker(false)}>
-                  <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                  <HugeIcon name="close" size={28} color={Colors.textPrimary} />
                 </TouchableOpacity>
               </View>
 

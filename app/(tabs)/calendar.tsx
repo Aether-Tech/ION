@@ -14,7 +14,7 @@ import {
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { HugeIcon } from '../../components/HugeIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Calendar, DateData } from 'react-native-calendars';
@@ -935,7 +935,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
         <View style={styles.checkboxContainer}>
           <View style={[styles.checkbox, item.completed && styles.checkboxChecked]}>
             {item.completed && (
-              <Ionicons name="checkmark" size={16} color={Colors.textInverse} />
+              <HugeIcon name="checkmark" size={16} color={Colors.textInverse} />
             )}
           </View>
         </View>
@@ -964,14 +964,14 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={styles.editButton}
         >
-          <Ionicons name="pencil-outline" size={20} color={Colors.ionBlue} />
+          <HugeIcon name="pencil-outline" size={20} color={Colors.ionBlue} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => deleteReminder(item.id)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={styles.deleteButton}
         >
-          <Ionicons name="trash-outline" size={20} color={Colors.error} />
+          <HugeIcon name="trash-outline" size={20} color={Colors.error} />
         </TouchableOpacity>
       </View>
     </BlurView>
@@ -1006,7 +1006,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
               style={[styles.tabButton, activeTab === 'tasks' && styles.tabButtonActive]}
               onPress={() => setActiveTab('tasks')}
             >
-              <Ionicons 
+              <HugeIcon 
                 name="checkmark-circle" 
                 size={20} 
                 color={activeTab === 'tasks' ? Colors.ionBlue : Colors.textSecondary} 
@@ -1019,7 +1019,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
               style={[styles.tabButton, activeTab === 'calendar' && styles.tabButtonActive]}
               onPress={() => setActiveTab('calendar')}
             >
-              <Ionicons 
+              <HugeIcon 
                 name="calendar" 
                 size={20} 
                 color={activeTab === 'calendar' ? Colors.ionBlue : Colors.textSecondary} 
@@ -1034,7 +1034,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
               style={styles.headerButton}
               onPress={() => setModalVisible(true)}
             >
-              <Ionicons name="add" size={28} color={Colors.textPrimary} />
+              <HugeIcon name="add" size={28} color={Colors.textPrimary} />
             </TouchableOpacity>
           )}
           {activeTab === 'calendar' && (
@@ -1043,7 +1043,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
               onPress={() => setPreferencesModalVisible(true)}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons name="settings-outline" size={22} color={Colors.textPrimary} />
+              <HugeIcon name="settings-outline" size={22} color={Colors.textPrimary} />
             </TouchableOpacity>
           )}
         </View>
@@ -1058,7 +1058,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
-                  <Ionicons name="checkmark-circle-outline" size={64} color={Colors.textSecondary} />
+                  <HugeIcon name="checkmark-circle-outline" size={64} color={Colors.textSecondary} />
                   <Text style={styles.emptyText}>Nenhuma tarefa</Text>
                 </View>
               }
@@ -1165,14 +1165,14 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
 
             {selectedEvents.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Ionicons name="calendar-outline" size={64} color={Colors.textSecondary} />
+                <HugeIcon name="calendar-outline" size={64} color={Colors.textSecondary} />
                 <Text style={styles.emptyText}>Nenhum evento agendado</Text>
               </View>
             ) : (
               selectedEvents.map((event) => (
                 <BlurView key={event.id} intensity={20} style={styles.eventCard}>
                   <View style={styles.eventTime}>
-                    <Ionicons name="time-outline" size={20} color={Colors.ionBlue} />
+                    <HugeIcon name="time-outline" size={20} color={Colors.ionBlue} />
                     <Text style={styles.eventTimeText}>{event.time}</Text>
                   </View>
                   <View style={styles.eventContent}>
@@ -1185,7 +1185,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
                     onPress={() => deleteEvent(event.id)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <Ionicons name="trash-outline" size={20} color={Colors.error} />
+                    <HugeIcon name="trash-outline" size={20} color={Colors.error} />
                   </TouchableOpacity>
                 </BlurView>
               ))
@@ -1200,7 +1200,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
           style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 60 }]}
             onPress={() => setCalendarModalVisible(true)}
         >
-          <Ionicons name="add" size={32} color={Colors.textInverse} />
+          <HugeIcon name="add" size={32} color={Colors.textInverse} />
         </TouchableOpacity>
         )}
 
@@ -1217,7 +1217,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Nova Tarefa</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                  <HugeIcon name="close" size={28} color={Colors.textPrimary} />
                 </TouchableOpacity>
               </View>
 
@@ -1282,7 +1282,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Editar Tarefa</Text>
                 <TouchableOpacity onPress={closeEditModal}>
-                  <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                  <HugeIcon name="close" size={28} color={Colors.textPrimary} />
                 </TouchableOpacity>
               </View>
 
@@ -1347,7 +1347,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Escolher Horário</Text>
                 <TouchableOpacity onPress={() => setShowTimePicker(false)}>
-                  <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                  <HugeIcon name="close" size={28} color={Colors.textPrimary} />
                 </TouchableOpacity>
               </View>
 
@@ -1469,7 +1469,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Novo Evento</Text>
                 <TouchableOpacity onPress={() => setCalendarModalVisible(false)}>
-                  <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                  <HugeIcon name="close" size={28} color={Colors.textPrimary} />
                 </TouchableOpacity>
               </View>
 
@@ -1525,7 +1525,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Configurações de lembretes</Text>
                 <TouchableOpacity onPress={() => setPreferencesModalVisible(false)}>
-                  <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                  <HugeIcon name="close" size={28} color={Colors.textPrimary} />
                 </TouchableOpacity>
               </View>
 

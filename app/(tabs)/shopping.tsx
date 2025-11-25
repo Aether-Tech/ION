@@ -14,7 +14,7 @@ import {
   Clipboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { HugeIcon } from '../../components/HugeIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { format } from 'date-fns';
@@ -509,7 +509,7 @@ export default function ShoppingScreen() {
         <View style={styles.checkboxContainer}>
           <View style={[styles.checkbox, item.completed && styles.checkboxChecked]}>
             {item.completed && (
-              <Ionicons name="checkmark" size={16} color={Colors.textInverse} />
+              <HugeIcon name="checkmark" size={16} color={Colors.textInverse} />
             )}
           </View>
         </View>
@@ -535,14 +535,14 @@ export default function ShoppingScreen() {
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={styles.editButton}
         >
-          <Ionicons name="pencil-outline" size={20} color={Colors.ionBlue} />
+          <HugeIcon name="pencil-outline" size={20} color={Colors.ionBlue} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => deleteItem(item.id)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={styles.deleteButton}
         >
-          <Ionicons name="trash-outline" size={20} color={Colors.error} />
+          <HugeIcon name="trash-outline" size={20} color={Colors.error} />
         </TouchableOpacity>
       </View>
     </BlurView>
@@ -742,14 +742,14 @@ export default function ShoppingScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerButton}>
-            <Ionicons name="cart" size={28} color={Colors.ionBlue} />
+            <HugeIcon name="cart" size={28} color={Colors.ionBlue} />
           </View>
           <Text style={styles.headerTitle}>Lista de Compras</Text>
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => setModalVisible(true)}
           >
-            <Ionicons name="add" size={28} color={Colors.textPrimary} />
+            <HugeIcon name="add" size={28} color={Colors.textPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -759,11 +759,11 @@ export default function ShoppingScreen() {
             style={styles.selecaoButton}
             onPress={() => setSelecoesModalVisible(true)}
           >
-            <Ionicons name="list" size={20} color={Colors.ionBlue} />
+            <HugeIcon name="list" size={20} color={Colors.ionBlue} />
             <Text style={styles.selecaoButtonText}>
               {selectedSelecao || 'Sem lista'}
             </Text>
-            <Ionicons name="chevron-down" size={18} color={Colors.textSecondary} />
+            <HugeIcon name="chevron-down" size={18} color={Colors.textSecondary} />
           </TouchableOpacity>
           {items.length > 0 && (
             <>
@@ -775,14 +775,14 @@ export default function ShoppingScreen() {
                 {isReorganizing ? (
                   <ActivityIndicator size="small" color={Colors.ionBlue} />
                 ) : (
-                  <Ionicons name="sparkles" size={24} color={Colors.ionBlue} />
+                  <HugeIcon name="sparkles" size={24} color={Colors.ionBlue} />
                 )}
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.copyButton}
                 onPress={copyListToClipboard}
               >
-                <Ionicons name="copy-outline" size={24} color={Colors.ionBlue} />
+                <HugeIcon name="copy-outline" size={24} color={Colors.ionBlue} />
               </TouchableOpacity>
             </>
           )}
@@ -795,7 +795,7 @@ export default function ShoppingScreen() {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="cart-outline" size={64} color={Colors.textSecondary} />
+              <HugeIcon name="cart-outline" size={64} color={Colors.textSecondary} />
               <Text style={styles.emptyText}>Nenhum item na lista</Text>
             </View>
           }
@@ -815,7 +815,7 @@ export default function ShoppingScreen() {
                   <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>Novo Item</Text>
                     <TouchableOpacity onPress={closeAddModal}>
-                      <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                      <HugeIcon name="close" size={28} color={Colors.textPrimary} />
                     </TouchableOpacity>
                   </View>
 
@@ -850,7 +850,7 @@ export default function ShoppingScreen() {
                           }
                         }}
                       >
-                        <Ionicons
+                        <HugeIcon
                           name={getCategoryIcon(cat)}
                           size={18}
                           color={newCategory === cat ? Colors.textInverse : Colors.textPrimary}
@@ -886,7 +886,7 @@ export default function ShoppingScreen() {
                                   Keyboard.dismiss();
                                 }}
                               >
-                                <Ionicons
+                                <HugeIcon
                                   name={getCategoryIcon(cat)}
                                   size={16}
                                   color={customCategory === cat ? Colors.textInverse : Colors.textPrimary}
@@ -941,7 +941,7 @@ export default function ShoppingScreen() {
                   <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>Editar Item</Text>
                     <TouchableOpacity onPress={closeEditModal}>
-                      <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                      <HugeIcon name="close" size={28} color={Colors.textPrimary} />
                     </TouchableOpacity>
                   </View>
 
@@ -976,7 +976,7 @@ export default function ShoppingScreen() {
                           }
                         }}
                       >
-                        <Ionicons
+                        <HugeIcon
                           name={getCategoryIcon(cat)}
                           size={18}
                           color={newCategory === cat ? Colors.textInverse : Colors.textPrimary}
@@ -1012,7 +1012,7 @@ export default function ShoppingScreen() {
                                   Keyboard.dismiss();
                                 }}
                               >
-                                <Ionicons
+                                <HugeIcon
                                   name={getCategoryIcon(cat)}
                                   size={16}
                                   color={customCategory === cat ? Colors.textInverse : Colors.textPrimary}
@@ -1075,7 +1075,7 @@ export default function ShoppingScreen() {
                         setSelecoesModalVisible(false);
                       }}
                     >
-                      <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                      <HugeIcon name="close" size={28} color={Colors.textPrimary} />
                     </TouchableOpacity>
                   </View>
 
@@ -1091,7 +1091,7 @@ export default function ShoppingScreen() {
                         setSelecoesModalVisible(false);
                       }}
                     >
-                      <Ionicons
+                      <HugeIcon
                         name="list-outline"
                         size={20}
                         color={selectedSelecao === null ? Colors.textInverse : Colors.textPrimary}
@@ -1105,7 +1105,7 @@ export default function ShoppingScreen() {
                         Sem lista
                       </Text>
                       {selectedSelecao === null && (
-                        <Ionicons name="checkmark" size={20} color={Colors.textInverse} />
+                        <HugeIcon name="checkmark" size={20} color={Colors.textInverse} />
                       )}
                     </TouchableOpacity>
 
@@ -1125,13 +1125,13 @@ export default function ShoppingScreen() {
                               onPress={saveEditSelecao}
                               style={styles.saveEditButton}
                             >
-                              <Ionicons name="checkmark" size={20} color={Colors.textInverse} />
+                              <HugeIcon name="checkmark" size={20} color={Colors.textInverse} />
                             </TouchableOpacity>
                             <TouchableOpacity
                               onPress={cancelEditSelecao}
                               style={styles.cancelEditButton}
                             >
-                              <Ionicons name="close" size={20} color={Colors.textPrimary} />
+                              <HugeIcon name="close" size={20} color={Colors.textPrimary} />
                             </TouchableOpacity>
                           </View>
                         ) : (
@@ -1145,7 +1145,7 @@ export default function ShoppingScreen() {
                               setSelecoesModalVisible(false);
                             }}
                           >
-                            <Ionicons
+                            <HugeIcon
                               name="list"
                               size={20}
                               color={selectedSelecao === selecao ? Colors.textInverse : Colors.textPrimary}
@@ -1160,21 +1160,21 @@ export default function ShoppingScreen() {
                             </Text>
                             <View style={styles.selecaoItemActions}>
                               {selectedSelecao === selecao && (
-                                <Ionicons name="checkmark" size={20} color={Colors.textInverse} />
+                                <HugeIcon name="checkmark" size={20} color={Colors.textInverse} />
                               )}
                               <TouchableOpacity
                                 onPress={() => startEditSelecao(selecao)}
                                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                 style={styles.editSelecaoButton}
                               >
-                                <Ionicons name="pencil-outline" size={18} color={Colors.ionBlue} />
+                                <HugeIcon name="pencil-outline" size={18} color={Colors.ionBlue} />
                               </TouchableOpacity>
                               <TouchableOpacity
                                 onPress={() => deleteSelecao(selecao)}
                                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                 style={styles.deleteSelecaoButton}
                               >
-                                <Ionicons name="trash-outline" size={18} color={Colors.error} />
+                                <HugeIcon name="trash-outline" size={18} color={Colors.error} />
                               </TouchableOpacity>
                             </View>
                           </TouchableOpacity>
@@ -1198,7 +1198,7 @@ export default function ShoppingScreen() {
                       style={styles.createSelecaoButton}
                       onPress={createSelecao}
                     >
-                      <Ionicons name="add" size={24} color={Colors.textInverse} />
+                      <HugeIcon name="add" size={24} color={Colors.textInverse} />
                     </TouchableOpacity>
                   </View>
                 </View>

@@ -15,7 +15,7 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { HugeIcon } from '../../components/HugeIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Audio } from 'expo-av';
@@ -762,7 +762,7 @@ export default function ChatScreen() {
                         styles.attachmentContainer,
                         message.isUser && styles.attachmentContainerUser
                       ]}>
-                        <Ionicons name="document" size={24} color={message.isUser ? Colors.textInverse : Colors.primary} />
+                        <HugeIcon name="document" size={24} color={message.isUser ? Colors.textInverse : Colors.primary} strokeWidth={1.5} />
                         <Text
                           style={[
                             styles.attachmentText,
@@ -814,7 +814,7 @@ export default function ChatScreen() {
                         style={styles.userAvatarImage}
                       />
                     ) : (
-                      <Ionicons name="person" size={20} color={Colors.primary} />
+                      <HugeIcon name="person" size={20} color={Colors.primary} strokeWidth={1.5} />
                     )}
                   </View>
                 )}
@@ -835,7 +835,7 @@ export default function ChatScreen() {
                   style={styles.imagePreviewCancel}
                   onPress={handleCancelImage}
                 >
-                  <Ionicons name="close-circle" size={28} color={Colors.error || '#FF3B30'} />
+                  <HugeIcon name="close-circle" size={28} color={Colors.error || '#FF3B30'} strokeWidth={1.5} />
                 </TouchableOpacity>
               </BlurView>
             </View>
@@ -846,7 +846,7 @@ export default function ChatScreen() {
             <View style={styles.documentPreviewContainer}>
               <BlurView intensity={20} style={styles.documentPreview}>
                 <View style={styles.documentPreviewContent}>
-                  <Ionicons name="document" size={48} color={Colors.primary} />
+                  <HugeIcon name="document" size={48} color={Colors.primary} strokeWidth={1.5} />
                   <Text style={styles.documentPreviewName} numberOfLines={2}>
                     {selectedDocument.name}
                   </Text>
@@ -855,7 +855,7 @@ export default function ChatScreen() {
                   style={styles.documentPreviewCancel}
                   onPress={handleCancelDocument}
                 >
-                  <Ionicons name="close-circle" size={28} color={Colors.error || '#FF3B30'} />
+                  <HugeIcon name="close-circle" size={28} color={Colors.error || '#FF3B30'} strokeWidth={1.5} />
                 </TouchableOpacity>
               </BlurView>
             </View>
@@ -869,10 +869,11 @@ export default function ChatScreen() {
                 onPress={() => setShowAttachmentModal(true)}
                 disabled={!!selectedImage || !!selectedDocument}
               >
-                <Ionicons 
+                <HugeIcon 
                   name="add-circle" 
                   size={28} 
-                  color={(selectedImage || selectedDocument) ? Colors.textSecondary + '80' : Colors.textSecondary} 
+                  color={(selectedImage || selectedDocument) ? Colors.textSecondary + '80' : Colors.textSecondary}
+                  strokeWidth={1.5}
                 />
               </TouchableOpacity>
               <TextInput
@@ -901,10 +902,11 @@ export default function ChatScreen() {
                       {transcribing ? (
                         <ActivityIndicator size="small" color={Colors.primary} />
                       ) : (
-                        <Ionicons
+                        <HugeIcon
                           name={isRecording ? "stop-circle" : "mic"}
                           size={28}
                           color={isRecording ? Colors.error || '#FF3B30' : Colors.textSecondary}
+                          strokeWidth={1.5}
                         />
                       )}
                     </TouchableOpacity>
@@ -936,10 +938,11 @@ export default function ChatScreen() {
                   }}
                   disabled={(!inputText.trim() && !isRecording && !selectedImage && !selectedDocument) || loading || transcribing}
                 >
-                  <Ionicons
+                  <HugeIcon
                     name="arrow-up"
                     size={24}
                     color={(inputText.trim() || isRecording || selectedImage || selectedDocument) ? Colors.textInverse : Colors.textSecondary}
+                    strokeWidth={1.5}
                   />
                 </TouchableOpacity>
               </View>
@@ -969,7 +972,7 @@ export default function ChatScreen() {
               onPress={() => handleTakePhoto()}
               activeOpacity={0.7}
             >
-              <Ionicons name="camera" size={24} color={Colors.primary} />
+              <HugeIcon name="camera" size={24} color={Colors.primary} strokeWidth={1.5} />
               <Text style={styles.modalOptionText}>Tirar Foto</Text>
             </TouchableOpacity>
             
@@ -978,7 +981,7 @@ export default function ChatScreen() {
               onPress={() => handlePickFromGallery()}
               activeOpacity={0.7}
             >
-              <Ionicons name="images" size={24} color={Colors.primary} />
+              <HugeIcon name="images" size={24} color={Colors.primary} strokeWidth={1.5} />
               <Text style={styles.modalOptionText}>Escolher da Galeria</Text>
             </TouchableOpacity>
             
@@ -988,10 +991,11 @@ export default function ChatScreen() {
               activeOpacity={0.7}
               disabled={isPickingDocument}
             >
-              <Ionicons 
+              <HugeIcon 
                 name="document" 
                 size={24} 
-                color={isPickingDocument ? Colors.textSecondary : Colors.primary} 
+                color={isPickingDocument ? Colors.textSecondary : Colors.primary}
+                strokeWidth={1.5}
               />
               <Text style={[
                 styles.modalOptionText,

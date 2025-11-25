@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { Ionicons } from '@expo/vector-icons';
+import { HugeIcon } from './HugeIcon';
 import { useAppColors } from '../hooks/useAppColors';
 import { IONLogo } from './IONLogo';
 
@@ -153,7 +153,7 @@ export function Onboarding({ onComplete, loading = false }: OnboardingProps) {
           <View key={index} style={styles.slide}>
             <View style={styles.slideContent}>
               <View style={[styles.iconContainer, { backgroundColor: `${slide.color}20` }]}>
-                <Ionicons name={slide.icon as any} size={64} color={slide.color} />
+                <HugeIcon name={slide.icon as any} size={64} color={slide.color} strokeWidth={2} />
               </View>
               <Text style={styles.slideTitle}>{slide.title}</Text>
               <Text style={styles.slideDescription}>{slide.description}</Text>
@@ -174,7 +174,7 @@ export function Onboarding({ onComplete, loading = false }: OnboardingProps) {
 
             <View style={styles.phoneInputContainer}>
               <BlurView intensity={20} style={styles.phoneInput}>
-                <Ionicons name="call-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
+                <HugeIcon name="call-outline" size={24} color={Colors.primary} strokeWidth={1.5} style={styles.inputIcon} />
                 <TextInput
                   style={styles.phoneInputField}
                   placeholder="Ex: 5527999999999"
@@ -202,7 +202,7 @@ export function Onboarding({ onComplete, loading = false }: OnboardingProps) {
             onPress={handlePrevious}
             disabled={loading}
           >
-            <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
+            <HugeIcon name="chevron-back" size={24} color={Colors.textPrimary} strokeWidth={1.5} />
             <Text style={styles.navButtonText}>Voltar</Text>
           </TouchableOpacity>
         )}
@@ -222,9 +222,9 @@ export function Onboarding({ onComplete, loading = false }: OnboardingProps) {
                 {currentSlide === slides.length ? 'Começar' : 'Próximo'}
               </Text>
               {currentSlide === slides.length ? (
-                <Ionicons name="checkmark" size={24} color={Colors.textInverse} />
+                <HugeIcon name="checkmark" size={24} color={Colors.textInverse} strokeWidth={1.5} />
               ) : (
-                <Ionicons name="chevron-forward" size={24} color={Colors.textInverse} />
+                <HugeIcon name="chevron-forward" size={24} color={Colors.textInverse} strokeWidth={1.5} />
               )}
             </>
           )}

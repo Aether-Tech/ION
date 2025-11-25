@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
-import { Ionicons } from '@expo/vector-icons';
+import { HugeIcon } from '../components/HugeIcon';
 import { useAppColors } from '../hooks/useAppColors';
 import { IONLogo } from '../components/IONLogo';
 
@@ -85,7 +85,7 @@ export default function LoginScreen() {
           <View style={styles.formContainer}>
             <Text style={styles.label}>Email</Text>
             <BlurView intensity={20} style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
+              <HugeIcon name="mail-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Ex: seu@email.com"
@@ -101,7 +101,7 @@ export default function LoginScreen() {
 
             <Text style={styles.label}>Senha</Text>
             <BlurView intensity={20} style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
+              <HugeIcon name="lock-closed-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Digite sua senha"
@@ -116,7 +116,7 @@ export default function LoginScreen() {
                 onPress={() => setShowPassword(!showPassword)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons 
+                <HugeIcon 
                   name={showPassword ? "eye-off-outline" : "eye-outline"} 
                   size={24} 
                   color={Colors.textSecondary} 

@@ -10,7 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { HugeIcon } from '../../components/HugeIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useAuth } from '../../contexts/AuthContext';
@@ -103,7 +103,7 @@ export default function ProfileScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.headerButton}>
-            <Ionicons name="arrow-back" size={28} color={Colors.textPrimary} />
+            <HugeIcon name="arrow-back" size={28} color={Colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Perfil & Configurações</Text>
           <View style={styles.headerButton} />
@@ -120,7 +120,7 @@ export default function ProfileScreen() {
                 />
               ) : (
                 <View style={styles.avatar}>
-                  <Ionicons name="person" size={48} color={Colors.primary} />
+                  <HugeIcon name="person" size={48} color={Colors.primary} />
                 </View>
               )}
               <View style={styles.avatarRing} />
@@ -143,7 +143,7 @@ export default function ProfileScreen() {
                 >
                   <View style={styles.menuItemLeft}>
                     <View style={styles.menuIconContainer}>
-                      <Ionicons name={item.icon as any} size={24} color={Colors.primary} />
+                      <HugeIcon name={item.icon as any} size={24} color={Colors.ionBlue} strokeWidth={1.5} />
                     </View>
                     <Text style={styles.menuItemText}>{item.title}</Text>
                   </View>
@@ -155,7 +155,7 @@ export default function ProfileScreen() {
                       thumbColor={Colors.textInverse}
                     />
                   ) : (
-                    <Ionicons name="chevron-forward" size={24} color={Colors.textSecondary} />
+                    <HugeIcon name="chevron-forward" size={24} color={Colors.textSecondary} />
                   )}
                 </TouchableOpacity>
               </BlurView>
@@ -168,7 +168,7 @@ export default function ProfileScreen() {
               style={styles.logoutButton}
               onPress={handleLogout}
             >
-              <Ionicons name="log-out-outline" size={24} color={Colors.error} />
+              <HugeIcon name="log-out-outline" size={24} color={Colors.error} />
               <Text style={styles.logoutButtonText}>Sair da Conta</Text>
             </TouchableOpacity>
           </View>

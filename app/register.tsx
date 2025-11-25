@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { Ionicons } from '@expo/vector-icons';
+import { HugeIcon } from '../components/HugeIcon';
 import { useRouter } from 'expo-router';
 import { useAppColors } from '../hooks/useAppColors';
 import { IONLogo } from '../components/IONLogo';
@@ -121,7 +121,7 @@ export default function RegisterScreen() {
             <View style={styles.formContainer}>
               <Text style={styles.label}>Nome completo</Text>
               <BlurView intensity={20} style={styles.inputContainer}>
-                <Ionicons name="person-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
+                <HugeIcon name="person-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Ex: Maria Silva"
@@ -136,7 +136,7 @@ export default function RegisterScreen() {
 
               <Text style={styles.label}>E-mail</Text>
               <BlurView intensity={20} style={styles.inputContainer}>
-                <Ionicons name="mail-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
+                <HugeIcon name="mail-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Ex: maria@email.com"
@@ -152,7 +152,7 @@ export default function RegisterScreen() {
 
               <Text style={styles.label}>Senha</Text>
               <BlurView intensity={20} style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
+                <HugeIcon name="lock-closed-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Mínimo 6 caracteres"
@@ -167,7 +167,7 @@ export default function RegisterScreen() {
                   onPress={() => setShowPassword(!showPassword)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons 
+                  <HugeIcon 
                     name={showPassword ? "eye-off-outline" : "eye-outline"} 
                     size={24} 
                     color={Colors.textSecondary} 
@@ -177,7 +177,7 @@ export default function RegisterScreen() {
 
               <Text style={styles.label}>Confirmar Senha</Text>
               <BlurView intensity={20} style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
+                <HugeIcon name="lock-closed-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Digite a senha novamente"
@@ -192,7 +192,7 @@ export default function RegisterScreen() {
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons 
+                  <HugeIcon 
                     name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
                     size={24} 
                     color={Colors.textSecondary} 
@@ -212,7 +212,7 @@ export default function RegisterScreen() {
                   </View>
                 ) : success ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                    <HugeIcon name="checkmark-circle" size={20} color="#FFFFFF" />
                     <Text style={styles.buttonText}>Conta criada! Redirecionando...</Text>
                   </View>
                 ) : (

@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { HugeIcon } from "../components/HugeIcon";
 import {
   View,
   Text,
@@ -20,14 +20,14 @@ export default function SubscribeInfoScreen() {
     <LinearGradient colors={Colors.backgroundGradient as any} style={styles.gradient}>
       <ScrollView contentContainerStyle={styles.container}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
+          <HugeIcon name="chevron-back" size={24} color={Colors.textPrimary} />
           <Text style={styles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
 
         <View style={styles.content}>
           <View style={styles.header}>
             <View style={styles.iconCircle}>
-              <Ionicons name="card-outline" size={48} color={Colors.primary} />
+              <HugeIcon name="card-outline" size={48} color={Colors.primary} />
             </View>
             <Text style={styles.title}>Assinatura ION</Text>
           </View>
@@ -47,7 +47,7 @@ export default function SubscribeInfoScreen() {
               style={[styles.actionButton, styles.primaryButton]}
               onPress={() => Linking.openURL('https://ion.goaether.com.br/')}
             >
-              <Ionicons name="link-outline" size={20} color={Colors.textInverse} />
+              <HugeIcon name="link-outline" size={20} color={Colors.textInverse} />
               <Text style={[styles.actionButtonText, styles.primaryButtonText]}>Assinar com Stripe</Text>
             </TouchableOpacity>
 
@@ -57,7 +57,7 @@ export default function SubscribeInfoScreen() {
                 Linking.openURL('https://wa.me/5527992491404?text=Ol%C3%A1!%20Quero%20testar%20a%20ION.')
               }
             >
-              <Ionicons name="logo-whatsapp" size={20} color={Colors.primary} />
+              <HugeIcon name="logo-whatsapp" size={20} color={Colors.primary} />
               <Text style={styles.actionButtonText}>Falar com a ION no WhatsApp</Text>
             </TouchableOpacity>
           </View>

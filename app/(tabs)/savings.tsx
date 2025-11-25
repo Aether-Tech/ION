@@ -15,7 +15,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { HugeIcon } from '../../components/HugeIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { format, differenceInMonths, differenceInDays, isAfter } from 'date-fns';
@@ -24,6 +24,7 @@ import { useAppColors } from '../../hooks/useAppColors';
 import { useAuth } from '../../contexts/AuthContext';
 import { caixinhasService } from '../../services/supabaseService';
 import { Caixinha } from '../../services/supabase';
+import { useRouter } from 'expo-router';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -49,6 +50,7 @@ interface InvestmentType {
 
 export default function SavingsScreen() {
   const Colors = useAppColors();
+  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [caixinhas, setCaixinhas] = useState<SavingsBox[]>([]);
   const [loading, setLoading] = useState(true);
@@ -559,13 +561,13 @@ export default function SavingsScreen() {
             </View>
             {completed ? (
               <View style={styles.completedBadge}>
-                <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
+                <HugeIcon name="checkmark-circle" size={16} color={Colors.success} />
                 <Text style={styles.completedText}>Meta Concluída!</Text>
               </View>
             ) : null}
             {isUrgent && !completed ? (
               <View style={styles.urgentBadge}>
-                <Ionicons name="alert-circle" size={14} color={Colors.error} />
+                <HugeIcon name="alert-circle" size={14} color={Colors.error} />
                 <Text style={styles.urgentText}>Prazo próximo!</Text>
               </View>
             ) : null}
@@ -577,7 +579,7 @@ export default function SavingsScreen() {
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 style={styles.depositButton}
               >
-                <Ionicons name="add-circle-outline" size={24} color={Colors.ionBlue} />
+                <HugeIcon name="add-circle-outline" size={24} color={Colors.ionBlue} />
               </TouchableOpacity>
             ) : null}
             <TouchableOpacity
@@ -585,14 +587,14 @@ export default function SavingsScreen() {
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               style={styles.editButton}
             >
-              <Ionicons name="pencil-outline" size={20} color={Colors.ionBlue} />
+              <HugeIcon name="pencil-outline" size={20} color={Colors.ionBlue} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => deleteCaixinha(item.id)}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               style={styles.deleteButton}
             >
-              <Ionicons name="trash-outline" size={20} color={Colors.error} />
+              <HugeIcon name="trash-outline" size={20} color={Colors.error} />
             </TouchableOpacity>
           </View>
         </View>
@@ -635,7 +637,7 @@ export default function SavingsScreen() {
               <View style={styles.detailsGrid}>
                 {daysLeft !== null && daysLeft >= 0 ? (
                   <View style={styles.detailItem}>
-                    <Ionicons name="time-outline" size={18} color={isUrgent ? Colors.error : Colors.textSecondary} />
+                    <HugeIcon name="time-outline" size={18} color={isUrgent ? Colors.error : Colors.textSecondary} />
                     <View style={styles.detailContent}>
                       <Text style={styles.detailLabel}>Tempo restante</Text>
                       <Text style={[styles.detailValue, isUrgent && { color: Colors.error }]}>
@@ -645,7 +647,7 @@ export default function SavingsScreen() {
                   </View>
                 ) : null}
                 <View style={styles.detailItem}>
-                  <Ionicons name="cash-outline" size={18} color={Colors.textSecondary} />
+                  <HugeIcon name="cash-outline" size={18} color={Colors.textSecondary} />
                   <View style={styles.detailContent}>
                     <Text style={styles.detailLabel}>Falta arrecadar</Text>
                     <Text style={styles.detailValue}>R$ {(remaining || 0).toFixed(2)}</Text>
@@ -653,7 +655,7 @@ export default function SavingsScreen() {
                 </View>
                 {item.data_para_concluir && monthlyDeposit > 0 ? (
                   <View style={styles.detailItem}>
-                    <Ionicons name="calendar-outline" size={18} color={Colors.textSecondary} />
+                    <HugeIcon name="calendar-outline" size={18} color={Colors.textSecondary} />
                     <View style={styles.detailContent}>
                       <Text style={styles.detailLabel}>Mensal necessário</Text>
                       <Text style={styles.detailValue}>R$ {(monthlyDeposit || 0).toFixed(2)}</Text>
@@ -662,7 +664,7 @@ export default function SavingsScreen() {
                 ) : null}
                 {item.deposito && item.deposito > 0 ? (
                   <View style={styles.detailItem}>
-                    <Ionicons name="add-circle" size={18} color={Colors.success} />
+                    <HugeIcon name="add-circle" size={18} color={Colors.success} />
                     <View style={styles.detailContent}>
                       <Text style={styles.detailLabel}>Último depósito</Text>
                       <Text style={styles.detailValue}>R$ {(item.deposito || 0).toFixed(2)}</Text>
@@ -678,7 +680,7 @@ export default function SavingsScreen() {
                   colors={[Colors.success + '20', Colors.success + '10']}
                   style={styles.completedGradient}
                 >
-                  <Ionicons name="trophy" size={24} color={Colors.success} />
+                  <HugeIcon name="trophy" size={24} color={Colors.success} />
                   <Text style={styles.completedDate}>
                     Parabéns! Meta atingida! 🎉
                   </Text>
@@ -732,15 +734,18 @@ export default function SavingsScreen() {
       </View>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
-          <View style={styles.headerButton}>
-            <Ionicons name="wallet" size={28} color={Colors.ionBlue} />
-          </View>
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={() => router.push('/(tabs)/finances')}
+          >
+            <HugeIcon name="arrow-back" size={28} color={Colors.textPrimary} />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>Caixinhas</Text>
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => setModalVisible(true)}
           >
-            <Ionicons name="add" size={28} color={Colors.textPrimary} />
+            <HugeIcon name="add" size={28} color={Colors.textPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -765,29 +770,29 @@ export default function SavingsScreen() {
                 <View style={styles.statsContainer}>
                   <BlurView intensity={20} style={styles.statsCard}>
                     <View style={styles.statsHeader}>
-                      <Ionicons name="stats-chart" size={24} color={Colors.ionBlue} />
+                      <HugeIcon name="stats-chart" size={24} color={Colors.ionBlue} />
                       <Text style={styles.statsTitle}>Resumo Geral</Text>
                     </View>
                     <View style={styles.statsGrid}>
                       <View style={styles.statItem}>
                         <Text style={styles.statValue}>R$ {stats.totalGuardado.toFixed(2)}</Text>
                         <Text style={styles.statLabel}>Total Guardado</Text>
-                        <Ionicons name="wallet" size={20} color={Colors.success} style={styles.statIcon} />
+                        <HugeIcon name="wallet" size={20} color={Colors.success} style={styles.statIcon} />
                       </View>
                       <View style={styles.statItem}>
                         <Text style={styles.statValue}>R$ {stats.totalMetas.toFixed(2)}</Text>
                         <Text style={styles.statLabel}>Total em Metas</Text>
-                        <Ionicons name="flag" size={20} color={Colors.primary} style={styles.statIcon} />
+                        <HugeIcon name="flag" size={20} color={Colors.primary} style={styles.statIcon} />
                       </View>
                       <View style={styles.statItem}>
                         <Text style={styles.statValue}>{stats.caixinhasCompletas}/{stats.totalCaixinhas}</Text>
                         <Text style={styles.statLabel}>Concluídas</Text>
-                        <Ionicons name="checkmark-circle" size={20} color={Colors.success} style={styles.statIcon} />
+                        <HugeIcon name="checkmark-circle" size={20} color={Colors.success} style={styles.statIcon} />
                       </View>
                       <View style={styles.statItem}>
                         <Text style={styles.statValue}>R$ {stats.totalRestante.toFixed(2)}</Text>
                         <Text style={styles.statLabel}>Falta Arrecadar</Text>
-                        <Ionicons name="trending-up" size={20} color={Colors.warning} style={styles.statIcon} />
+                        <HugeIcon name="trending-up" size={20} color={Colors.warning} style={styles.statIcon} />
                       </View>
                     </View>
                     <View style={styles.overallProgressContainer}>
@@ -815,7 +820,7 @@ export default function SavingsScreen() {
                     activeOpacity={0.7}
                   >
                     <View style={styles.investmentHeaderLeft}>
-                      <Ionicons name="trending-up" size={24} color={Colors.success} />
+                      <HugeIcon name="trending-up" size={24} color={Colors.success} />
                       <View style={styles.investmentHeaderText}>
                         <Text style={styles.investmentTitle}>Simulação de Investimentos</Text>
                         <Text style={styles.investmentSubtitle}>
@@ -823,7 +828,7 @@ export default function SavingsScreen() {
                         </Text>
                       </View>
                     </View>
-                    <Ionicons
+                    <HugeIcon
                       name={investmentExpanded ? 'chevron-up' : 'chevron-down'}
                       size={24}
                       color={Colors.textSecondary}
@@ -867,7 +872,7 @@ export default function SavingsScreen() {
                                       { backgroundColor: riscoColor + '20' },
                                     ]}
                                   >
-                                    <Ionicons
+                                    <HugeIcon
                                       name={investment.icone}
                                       size={20}
                                       color={riscoColor}
@@ -932,7 +937,7 @@ export default function SavingsScreen() {
                       </View>
 
                       <View style={styles.investmentDisclaimer}>
-                        <Ionicons name="information-circle" size={16} color={Colors.textSecondary} />
+                        <HugeIcon name="information-circle" size={16} color={Colors.textSecondary} />
                         <Text style={styles.investmentDisclaimerText}>
                           Valores são estimativas baseadas em rendimentos históricos médios. 
                           Investimentos passados não garantem resultados futuros. 
@@ -993,30 +998,30 @@ export default function SavingsScreen() {
               {/* Card de Dicas */}
               <BlurView intensity={20} style={styles.tipsCard}>
                 <View style={styles.tipsHeader}>
-                  <Ionicons name="bulb" size={24} color={Colors.warning} />
+                  <HugeIcon name="bulb" size={24} color={Colors.warning} />
                   <Text style={styles.tipsTitle}>Dicas para Economizar</Text>
                 </View>
                 <View style={styles.tipsList}>
                   <View style={styles.tipItem}>
-                    <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
+                    <HugeIcon name="checkmark-circle" size={16} color={Colors.success} />
                     <Text style={styles.tipText}>
                       Faça depósitos regulares, mesmo que pequenos. A consistência é a chave!
                     </Text>
                   </View>
                   <View style={styles.tipItem}>
-                    <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
+                    <HugeIcon name="checkmark-circle" size={16} color={Colors.success} />
                     <Text style={styles.tipText}>
                       Estabeleça metas realistas com prazos adequados para evitar frustrações.
                     </Text>
                   </View>
                   <View style={styles.tipItem}>
-                    <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
+                    <HugeIcon name="checkmark-circle" size={16} color={Colors.success} />
                     <Text style={styles.tipText}>
                       Priorize suas caixinhas: comece pelas mais urgentes ou importantes.
                     </Text>
                   </View>
                   <View style={styles.tipItem}>
-                    <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
+                    <HugeIcon name="checkmark-circle" size={16} color={Colors.success} />
                     <Text style={styles.tipText}>
                       Revise seus gastos mensais e identifique oportunidades de economia.
                     </Text>
@@ -1027,7 +1032,7 @@ export default function SavingsScreen() {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="wallet-outline" size={64} color={Colors.textSecondary} />
+              <HugeIcon name="wallet-outline" size={64} color={Colors.textSecondary} />
               <Text style={styles.emptyText}>Nenhuma caixinha criada</Text>
               <Text style={styles.emptySubtext}>
                 Comece criando sua primeira caixinha para alcançar seus objetivos!
@@ -1048,7 +1053,7 @@ export default function SavingsScreen() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Nova Caixinha</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                  <HugeIcon name="close" size={28} color={Colors.textPrimary} />
                 </TouchableOpacity>
               </View>
 
@@ -1114,7 +1119,7 @@ export default function SavingsScreen() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Editar Caixinha</Text>
                 <TouchableOpacity onPress={closeEditModal}>
-                  <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                  <HugeIcon name="close" size={28} color={Colors.textPrimary} />
                 </TouchableOpacity>
               </View>
 
@@ -1182,7 +1187,7 @@ export default function SavingsScreen() {
                   <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>Adicionar Depósito</Text>
                     <TouchableOpacity onPress={closeDepositModal}>
-                      <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                      <HugeIcon name="close" size={28} color={Colors.textPrimary} />
                     </TouchableOpacity>
                   </View>
 

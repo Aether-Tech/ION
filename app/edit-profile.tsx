@@ -13,7 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { HugeIcon } from "../components/HugeIcon";
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
@@ -384,7 +384,7 @@ export default function EditProfileScreen() {
             style={styles.headerButton}
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={28} color={Colors.textPrimary} />
+            <HugeIcon name="arrow-back" size={28} color={Colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Editar Perfil</Text>
           <View style={styles.headerButton} />
@@ -406,7 +406,7 @@ export default function EditProfileScreen() {
                   <Image source={{ uri: fotoPerfil }} style={styles.avatarImage} />
                 ) : (
                   <View style={styles.avatar}>
-                    <Ionicons name="person" size={48} color={Colors.primary} />
+                    <HugeIcon name="person" size={48} color={Colors.primary} />
                   </View>
                 )}
                 <View style={styles.avatarRing} />
@@ -420,7 +420,7 @@ export default function EditProfileScreen() {
                   <ActivityIndicator size="small" color={Colors.primary} />
                 ) : (
                   <>
-                    <Ionicons name="camera" size={20} color={Colors.primary} />
+                    <HugeIcon name="camera" size={20} color={Colors.primary} />
                     <Text style={styles.changePhotoText}>Alterar Foto de Perfil</Text>
                   </>
                 )}
@@ -440,7 +440,7 @@ export default function EditProfileScreen() {
                     placeholder="Número do usuário"
                     placeholderTextColor={Colors.textSecondary}
                   />
-                  <Ionicons
+                  <HugeIcon
                     name="lock-closed"
                     size={20}
                     color={Colors.textSecondary}
@@ -493,7 +493,7 @@ export default function EditProfileScreen() {
                 <ActivityIndicator size="small" color={Colors.textInverse} />
               ) : (
                 <>
-                  <Ionicons name="checkmark-circle" size={24} color={Colors.textInverse} />
+                  <HugeIcon name="checkmark-circle" size={24} color={Colors.textInverse} />
                   <Text style={styles.saveButtonText}>Salvar Alterações</Text>
                 </>
               )}

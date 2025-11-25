@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { HugeIcon } from '../../components/HugeIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as DocumentPicker from 'expo-document-picker';
@@ -24,8 +24,9 @@ import { useAppColors } from '../../hooks/useAppColors';
 import { IONLogo } from '../../components/IONLogo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
-import { transacoesService, categoriasService } from '../../services/supabaseService';
+import { transacoesService, categoriasService, caixinhasService } from '../../services/supabaseService';
 import { Transacao, CategoriaTransacao } from '../../services/supabase';
+import { useRouter } from 'expo-router';
 
 interface Transaction {
   id: string;
@@ -40,12 +41,28 @@ interface Transaction {
 type PeriodType = 'week' | 'month' | 'quarter' | 'year' | 'all';
 type SortType = 'date' | 'amount' | 'category' | 'description';
 
+type TabType = 'transactions' | 'savings';
+
+interface SavingsBox {
+  id: string;
+  nome_caixinha: string;
+  valor_meta: number;
+  valor_total_arrecadado: number;
+  deposito: number | null;
+  data_para_concluir: Date | null;
+  categoria: string | null;
+  createdAt: Date;
+}
+
 export default function FinancesScreen() {
   const Colors = useAppColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const [activeTab, setActiveTab] = useState<TabType>('transactions');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categorias, setCategorias] = useState<CategoriaTransacao[]>([]);
+  const [caixinhas, setCaixinhas] = useState<SavingsBox[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('month');
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,6 +96,7 @@ export default function FinancesScreen() {
     
     setLoading(true);
     try {
+      // Carregar transações
       const transacoesData = await transacoesService.getByUsuarioId(user.usuarioId);
       const transactionsFormatted: Transaction[] = transacoesData.map((t) => ({
         id: t.id.toString(),
@@ -102,6 +120,23 @@ export default function FinancesScreen() {
       });
 
       setTransactions(transactionsWithCategories);
+
+      // Carregar caixinhas
+      const caixinhasData = await caixinhasService.getByUsuarioId(user.usuarioId);
+      const caixinhasFormatted: SavingsBox[] = caixinhasData.map((caixinha) => {
+        const dataParaConcluir = caixinha.data_para_concluir ? new Date(caixinha.data_para_concluir) : null;
+        return {
+          id: caixinha.id.toString(),
+          nome_caixinha: caixinha.nome_caixinha || 'Sem nome',
+          valor_meta: caixinha.valor_meta || 0,
+          valor_total_arrecadado: caixinha.valor_total_arrecadado || 0,
+          deposito: caixinha.deposito,
+          data_para_concluir: dataParaConcluir,
+          categoria: caixinha.categoria,
+          createdAt: new Date(caixinha.created_at),
+        };
+      });
+      setCaixinhas(caixinhasFormatted);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -803,7 +838,7 @@ export default function FinancesScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerButton}>
-            <Ionicons name="wallet" size={28} color={Colors.ionBlue} />
+            <HugeIcon name="wallet" size={28} color={Colors.ionBlue} strokeWidth={1.5} />
           </View>
           <Text style={styles.headerTitle}>Assistente Financeiro</Text>
           <View style={styles.headerButton} />
@@ -858,7 +893,7 @@ export default function FinancesScreen() {
                 styles.balanceIconContainer,
                 { backgroundColor: currentBalance >= 0 ? Colors.success + '30' : Colors.error + '30' }
               ]}>
-                <Ionicons 
+                <HugeIcon 
                   name={currentBalance >= 0 ? "trending-up" : "trending-down"} 
                   size={32} 
                   color={currentBalance >= 0 ? Colors.success : Colors.error} 
@@ -873,14 +908,14 @@ export default function FinancesScreen() {
             </Text>
             <View style={styles.balanceDetails}>
               <View style={styles.balanceDetailItem}>
-                <Ionicons name="arrow-down-circle" size={16} color={Colors.success} />
+                <HugeIcon name="arrow-down-circle" size={16} color={Colors.success} strokeWidth={1.5} />
                 <Text style={styles.balanceDetailLabel}>Entradas</Text>
                 <Text style={[styles.balanceDetailValue, { color: Colors.success }]}>
                   {formatCurrency(currentIncome)}
                 </Text>
                 {previousIncome > 0 && (
                   <View style={styles.changeIndicator}>
-                    <Ionicons 
+                    <HugeIcon 
                       name={incomeChange >= 0 ? "arrow-up" : "arrow-down"} 
                       size={12} 
                       color={incomeChange >= 0 ? Colors.success : Colors.error} 
@@ -895,14 +930,14 @@ export default function FinancesScreen() {
                 )}
               </View>
               <View style={styles.balanceDetailItem}>
-                <Ionicons name="arrow-up-circle" size={16} color={Colors.error} />
+                <HugeIcon name="arrow-up-circle" size={16} color={Colors.error} strokeWidth={1.5} />
                 <Text style={styles.balanceDetailLabel}>Saídas</Text>
                 <Text style={[styles.balanceDetailValue, { color: Colors.error }]}>
                   {formatCurrency(currentExpenses)}
                 </Text>
                 {previousExpenses > 0 && (
                   <View style={styles.changeIndicator}>
-                    <Ionicons 
+                    <HugeIcon 
                       name={expensesChange <= 0 ? "arrow-down" : "arrow-up"} 
                       size={12} 
                       color={expensesChange <= 0 ? Colors.success : Colors.error} 
@@ -923,7 +958,7 @@ export default function FinancesScreen() {
           <View style={styles.insightsGrid}>
             <BlurView intensity={20} style={styles.insightCard}>
               <View style={[styles.insightIcon, { backgroundColor: Colors.ionBlue + '20' }]}>
-                <Ionicons name="stats-chart" size={24} color={Colors.ionBlue} />
+                <HugeIcon name="stats-chart" size={24} color={Colors.ionBlue} strokeWidth={1.5} />
               </View>
               <Text style={styles.insightLabel}>Transações</Text>
               <Text style={styles.insightValue}>{insights.transactionCount}</Text>
@@ -935,7 +970,7 @@ export default function FinancesScreen() {
             {insights.topCategory && (
               <BlurView intensity={20} style={styles.insightCard}>
                 <View style={[styles.insightIcon, { backgroundColor: Colors.warning + '20' }]}>
-                  <Ionicons name="podium" size={24} color={Colors.warning} />
+                  <HugeIcon name="podium" size={24} color={Colors.warning} strokeWidth={1.5} />
                 </View>
                 <Text style={styles.insightLabel}>Maior Categoria</Text>
                 <Text style={styles.insightValue} numberOfLines={1}>
@@ -950,7 +985,7 @@ export default function FinancesScreen() {
             {insights.savingsRate > 0 && (
               <BlurView intensity={20} style={styles.insightCard}>
                 <View style={[styles.insightIcon, { backgroundColor: Colors.success + '20' }]}>
-                  <Ionicons name="save" size={24} color={Colors.success} />
+                  <HugeIcon name="save" size={24} color={Colors.success} strokeWidth={1.5} />
                 </View>
                 <Text style={styles.insightLabel}>Taxa de Poupança</Text>
                 <Text style={styles.insightValue}>{insights.savingsRate.toFixed(1)}%</Text>
@@ -965,7 +1000,7 @@ export default function FinancesScreen() {
           {recommendations.length > 0 && (
             <BlurView intensity={20} style={styles.recommendationsCard}>
               <View style={styles.recommendationsHeader}>
-                <Ionicons name="bulb" size={24} color={Colors.warning} />
+                <HugeIcon name="bulb" size={24} color={Colors.warning} strokeWidth={1.5} />
                 <Text style={styles.recommendationsTitle}>Recomendações</Text>
               </View>
               {recommendations.map((rec, index) => (
@@ -1097,7 +1132,7 @@ export default function FinancesScreen() {
           {/* Busca e Ordenação */}
           <BlurView intensity={20} style={styles.searchCard}>
             <View style={styles.searchContainer}>
-              <Ionicons name="search" size={20} color={Colors.textSecondary} />
+              <HugeIcon name="search" size={20} color={Colors.textSecondary} strokeWidth={1.5} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Buscar transações..."
@@ -1107,7 +1142,7 @@ export default function FinancesScreen() {
               />
               {searchQuery !== '' && (
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
+                  <HugeIcon name="close-circle" size={20} color={Colors.textSecondary} strokeWidth={1.5} />
                 </TouchableOpacity>
               )}
             </View>
@@ -1137,7 +1172,7 @@ export default function FinancesScreen() {
                       {sort === 'date' ? 'Data' : sort === 'amount' ? 'Valor' : sort === 'category' ? 'Categoria' : 'Descrição'}
                     </Text>
                     {sortBy === sort && (
-                      <Ionicons 
+                      <HugeIcon 
                         name={sortAscending ? "arrow-up" : "arrow-down"} 
                         size={14} 
                         color={Colors.textInverse} 
@@ -1172,7 +1207,7 @@ export default function FinancesScreen() {
                       styles.transactionIcon,
                       { backgroundColor: transaction.type === 'income' ? Colors.success + '20' : Colors.error + '20' }
                     ]}>
-                      <Ionicons 
+                      <HugeIcon 
                         name={transaction.type === 'income' ? "arrow-down" : "arrow-up"} 
                         size={20} 
                         color={transaction.type === 'income' ? Colors.success : Colors.error} 
@@ -1204,7 +1239,7 @@ export default function FinancesScreen() {
                         {transaction.type === 'income' ? '+' : '-'}
                         {formatCurrency(transaction.amount)}
                       </Text>
-                      <Ionicons 
+                      <HugeIcon 
                         name={expandedTransaction === transaction.id ? "chevron-up" : "chevron-down"} 
                         size={16} 
                         color={Colors.textSecondary} 
@@ -1236,7 +1271,7 @@ export default function FinancesScreen() {
                         style={styles.deleteButton}
                         onPress={() => deleteTransaction(transaction.id)}
                       >
-                        <Ionicons name="trash-outline" size={18} color={Colors.error} />
+                        <HugeIcon name="trash-outline" size={18} color={Colors.error} strokeWidth={1.5} />
                         <Text style={styles.deleteButtonText}>Excluir</Text>
                       </TouchableOpacity>
                     </View>
@@ -1245,7 +1280,7 @@ export default function FinancesScreen() {
               ))
             ) : (
               <View style={styles.emptyState}>
-                <Ionicons name="wallet-outline" size={64} color={Colors.textSecondary} />
+                <HugeIcon name="wallet-outline" size={64} color={Colors.textSecondary} strokeWidth={1.5} />
                 <Text style={styles.emptyStateText}>
                   {hasActiveFilters() 
                     ? 'Nenhuma transação encontrada com os filtros aplicados' 
@@ -1263,10 +1298,39 @@ export default function FinancesScreen() {
             )}
           </BlurView>
 
+          {/* Banner de Caixinhas */}
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/savings')}
+            activeOpacity={0.8}
+          >
+            <BlurView intensity={20} style={styles.caixinhasBanner}>
+              <LinearGradient
+                colors={[Colors.ionBlue + '20', Colors.primary + '20']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.caixinhasBannerContent}>
+                <View style={styles.caixinhasBannerLeft}>
+                  <View style={styles.caixinhasBannerIconContainer}>
+                    <HugeIcon name="save" size={32} color={Colors.ionBlue} strokeWidth={1.5} />
+                  </View>
+                  <View style={styles.caixinhasBannerText}>
+                    <Text style={styles.caixinhasBannerTitle}>Caixinhas</Text>
+                    <Text style={styles.caixinhasBannerSubtitle}>
+                      Gerencie suas metas de economia
+                    </Text>
+                  </View>
+                </View>
+                <HugeIcon name="chevron-forward" size={24} color={Colors.textSecondary} strokeWidth={1.5} />
+              </View>
+            </BlurView>
+          </TouchableOpacity>
+
           {/* Exportação de Transações */}
           <BlurView intensity={20} style={[styles.integrationCard, styles.integrationCardSpacing]}>
             <View style={styles.integrationHeader}>
-              <Ionicons name="swap-vertical" size={24} color={Colors.ionBlue} />
+              <HugeIcon name="swap-vertical" size={24} color={Colors.ionBlue} strokeWidth={1.5} />
               <Text style={styles.integrationTitle}>Exportar Transações</Text>
             </View>
             <Text style={styles.integrationDescription}>
@@ -1281,7 +1345,7 @@ export default function FinancesScreen() {
                 {importing ? (
                   <ActivityIndicator size="small" color={Colors.textPrimary} />
                 ) : (
-                  <Ionicons name="cloud-download" size={18} color={Colors.textPrimary} />
+                  <HugeIcon name="cloud-download" size={18} color={Colors.textPrimary} strokeWidth={1.5} />
                 )}
                 <Text style={styles.integrationButtonText}>
                   {importing ? 'Importando...' : 'Importar CSV'}
@@ -1295,7 +1359,7 @@ export default function FinancesScreen() {
                 {exporting ? (
                   <ActivityIndicator size="small" color={Colors.backgroundDark} />
                 ) : (
-                  <Ionicons name="cloud-upload" size={18} color={Colors.backgroundDark} />
+                  <HugeIcon name="cloud-upload" size={18} color={Colors.backgroundDark} strokeWidth={1.5} />
                 )}
                 <Text style={[styles.integrationButtonText, styles.integrationButtonTextInverse]}>
                   {exporting ? 'Exportando...' : 'Exportar'}
@@ -1303,6 +1367,83 @@ export default function FinancesScreen() {
               </TouchableOpacity>
             </View>
           </BlurView>
+
+          {/* Seção de Caixinhas */}
+          {caixinhas.length > 0 && (
+            <View style={styles.caixinhasSection}>
+              <BlurView intensity={20} style={styles.caixinhasHeaderCard}>
+                <View style={styles.caixinhasHeader}>
+                  <HugeIcon name="save" size={24} color={Colors.ionBlue} strokeWidth={1.5} />
+                  <Text style={styles.caixinhasTitle}>Caixinhas</Text>
+                </View>
+                <Text style={styles.caixinhasSubtitle}>
+                  {caixinhas.length} {caixinhas.length === 1 ? 'caixinha' : 'caixinhas'} ativa{caixinhas.length === 1 ? '' : 's'}
+                </Text>
+              </BlurView>
+
+              {caixinhas.map((caixinha) => {
+                const progress = caixinha.valor_meta > 0 
+                  ? Math.min(100, (caixinha.valor_total_arrecadado / caixinha.valor_meta) * 100)
+                  : 0;
+                const remaining = Math.max(0, caixinha.valor_meta - caixinha.valor_total_arrecadado);
+                const completed = caixinha.valor_total_arrecadado >= caixinha.valor_meta;
+                const progressColor = completed ? Colors.success : Colors.ionBlue;
+
+                return (
+                  <BlurView key={caixinha.id} intensity={20} style={styles.caixinhaCard}>
+                    <View style={styles.caixinhaHeader}>
+                      <View style={styles.caixinhaHeaderLeft}>
+                        {caixinha.categoria ? (
+                          <View style={styles.categoryTag}>
+                            <Text style={styles.categoryTagText}>{caixinha.categoria}</Text>
+                          </View>
+                        ) : null}
+                        <Text style={styles.caixinhaTitle}>{caixinha.nome_caixinha}</Text>
+                      </View>
+                      {completed && (
+                        <View style={styles.completedBadge}>
+                          <HugeIcon name="checkmark-circle" size={16} color={Colors.success} />
+                          <Text style={styles.completedText}>Concluída</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={styles.caixinhaContent}>
+                      <View style={styles.progressContainer}>
+                        <View style={styles.progressBar}>
+                          <LinearGradient
+                            colors={[progressColor, progressColor + 'AA']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={[styles.progressFill, { width: `${progress}%` }]}
+                          />
+                        </View>
+                        <View style={styles.valuesRow}>
+                          <View>
+                            <Text style={styles.valueLabel}>Arrecadado</Text>
+                            <Text style={styles.valueText}>R$ {(caixinha.valor_total_arrecadado || 0).toFixed(2)}</Text>
+                          </View>
+                          <View style={{ alignItems: 'flex-end' }}>
+                            <Text style={styles.valueLabel}>Meta</Text>
+                            <Text style={styles.valueText}>R$ {(caixinha.valor_meta || 0).toFixed(2)}</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {!completed && remaining > 0 && (
+                        <View style={styles.remainingInfo}>
+                          <HugeIcon name="cash" size={16} color={Colors.textSecondary} strokeWidth={1.5} />
+                          <Text style={styles.remainingText}>
+                            Falta: R$ {remaining.toFixed(2)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </BlurView>
+                );
+              })}
+            </View>
+          )}
         </ScrollView>
 
         {/* FAB */}
@@ -1328,7 +1469,7 @@ export default function FinancesScreen() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Nova Transação</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <Ionicons name="close" size={28} color={Colors.textPrimary} />
+                  <HugeIcon name="close" size={28} color={Colors.textPrimary} strokeWidth={1.5} />
                 </TouchableOpacity>
               </View>
 
@@ -1340,7 +1481,7 @@ export default function FinancesScreen() {
                   ]}
                   onPress={() => setTransactionType('income')}
                 >
-                  <Ionicons
+                  <HugeIcon
                     name="arrow-down"
                     size={20}
                     color={transactionType === 'income' ? Colors.textInverse : Colors.success}
@@ -1361,7 +1502,7 @@ export default function FinancesScreen() {
                   ]}
                   onPress={() => setTransactionType('expense')}
                 >
-                  <Ionicons
+                  <HugeIcon
                     name="arrow-up"
                     size={20}
                     color={transactionType === 'expense' ? Colors.textInverse : Colors.error}
@@ -1504,14 +1645,15 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
       color: Colors.textInverse,
     },
     integrationCard: {
-      marginTop: 28,
-      marginBottom: 28,
+      marginTop: 0,
+      marginBottom: 20,
       borderRadius: 20,
       padding: 20,
       backgroundColor: Colors.glassBackground,
       borderWidth: 1,
       borderColor: Colors.glassBorder,
       gap: 12,
+      overflow: 'hidden',
     },
     integrationHeader: {
       flexDirection: 'row',
@@ -1537,9 +1679,10 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: 14,
+      borderRadius: 16,
       paddingVertical: 14,
       gap: 8,
+      overflow: 'hidden',
     },
     integrationButtonPrimary: {
       backgroundColor: Colors.ionBlue,
@@ -1558,7 +1701,7 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
       color: Colors.backgroundDark,
     },
     integrationCardSpacing: {
-      marginTop: 32,
+      marginTop: 0,
     },
     balanceCard: {
       padding: 24,
@@ -1634,10 +1777,11 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
       flex: 1,
       minWidth: '30%',
       padding: 16,
-      borderRadius: 16,
+      borderRadius: 20,
       backgroundColor: Colors.glassBackground,
       borderWidth: 1,
       borderColor: Colors.glassBorder,
+      overflow: 'hidden',
     },
     insightIcon: {
       width: 48,
@@ -1664,11 +1808,12 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     },
     recommendationsCard: {
       padding: 20,
-      borderRadius: 16,
+      borderRadius: 20,
       backgroundColor: Colors.glassBackground,
       borderWidth: 1,
       borderColor: Colors.glassBorder,
       marginBottom: 16,
+      overflow: 'hidden',
     },
     recommendationsHeader: {
       flexDirection: 'row',
@@ -1693,11 +1838,12 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     },
     chartCard: {
       padding: 20,
-      borderRadius: 16,
+      borderRadius: 20,
       backgroundColor: Colors.glassBackground,
       borderWidth: 1,
       borderColor: Colors.glassBorder,
       marginBottom: 16,
+      overflow: 'hidden',
     },
     chartTitle: {
       fontSize: 18,
@@ -1824,11 +1970,12 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     },
     searchCard: {
       padding: 16,
-      borderRadius: 16,
+      borderRadius: 20,
       backgroundColor: Colors.glassBackground,
       borderWidth: 1,
       borderColor: Colors.glassBorder,
       marginBottom: 16,
+      overflow: 'hidden',
     },
     searchContainer: {
       flexDirection: 'row',
@@ -1880,11 +2027,12 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
       color: Colors.textInverse,
     },
     transactionsCard: {
-      borderRadius: 16,
+      borderRadius: 20,
       backgroundColor: Colors.glassBackground,
       borderWidth: 1,
       borderColor: Colors.glassBorder,
       padding: 16,
+      overflow: 'hidden',
     },
     transactionsHeader: {
       marginBottom: 16,
@@ -1899,11 +2047,12 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     },
     transactionItem: {
       backgroundColor: Colors.backgroundDarkTertiary,
-      borderRadius: 12,
+      borderRadius: 16,
       padding: 16,
       marginBottom: 12,
       borderWidth: 1,
       borderColor: Colors.borderLight,
+      overflow: 'hidden',
     },
     transactionMain: {
       flexDirection: 'row',
@@ -2120,6 +2269,167 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
       fontSize: 18,
       fontWeight: '600',
       color: Colors.textInverse,
+    },
+    caixinhasSection: {
+      marginTop: 24,
+      gap: 12,
+    },
+    caixinhasHeaderCard: {
+      borderRadius: 16,
+      backgroundColor: Colors.glassBackground,
+      borderWidth: 1,
+      borderColor: Colors.glassBorder,
+      padding: 16,
+      marginBottom: 8,
+    },
+    caixinhasHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 8,
+    },
+    caixinhasTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: Colors.textPrimary,
+    },
+    caixinhasSubtitle: {
+      fontSize: 14,
+      color: Colors.textSecondary,
+      marginLeft: 36,
+    },
+    caixinhaCard: {
+      borderRadius: 16,
+      backgroundColor: Colors.glassBackground,
+      borderWidth: 1,
+      borderColor: Colors.glassBorder,
+      padding: 16,
+    },
+    caixinhaTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: Colors.textPrimary,
+    },
+    caixinhaHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    caixinhaHeaderLeft: {
+      flex: 1,
+      gap: 8,
+    },
+    categoryTag: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+      backgroundColor: Colors.backgroundDarkTertiary,
+    },
+    categoryTagText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: Colors.textSecondary,
+    },
+    completedBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+      backgroundColor: Colors.success + '20',
+    },
+    completedText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: Colors.success,
+    },
+    caixinhaContent: {
+      gap: 12,
+    },
+    progressContainer: {
+      gap: 8,
+    },
+    progressBar: {
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: Colors.backgroundDarkTertiary,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      borderRadius: 4,
+    },
+    valuesRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    valueLabel: {
+      fontSize: 12,
+      color: Colors.textSecondary,
+      marginBottom: 4,
+    },
+    valueText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: Colors.textPrimary,
+    },
+    remainingInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: Colors.borderLight,
+    },
+    remainingText: {
+      fontSize: 14,
+      color: Colors.textSecondary,
+    },
+    caixinhasBanner: {
+      borderRadius: 16,
+      backgroundColor: Colors.glassBackground,
+      borderWidth: 1,
+      borderColor: Colors.glassBorder,
+      marginTop: 16,
+      marginBottom: 16,
+      overflow: 'hidden',
+    },
+    caixinhasBannerContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 16,
+    },
+    caixinhasBannerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      gap: 16,
+    },
+    caixinhasBannerIconContainer: {
+      width: 56,
+      height: 56,
+      borderRadius: 16,
+      backgroundColor: Colors.backgroundDarkTertiary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    caixinhasBannerText: {
+      flex: 1,
+      gap: 4,
+    },
+    caixinhasBannerTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: Colors.textPrimary,
+    },
+    caixinhasBannerSubtitle: {
+      fontSize: 14,
+      color: Colors.textSecondary,
     },
   });
 }

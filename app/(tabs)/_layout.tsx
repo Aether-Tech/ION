@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { HugeIcon } from '../../components/HugeIcon';
+import { AnimatedChatIcon } from '../../components/AnimatedChatIcon';
 import { useAuth } from '../../contexts/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -32,7 +33,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.ionBlue,
+        tabBarActiveTintColor: '#FFFFFF',
         tabBarInactiveTintColor: Colors.textSecondary,
         tabBarShowLabel: false,
         tabBarStyle: {
@@ -67,20 +68,11 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="chat"
-        options={{
-          title: 'Chat',
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="chatbubbles" size={32} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="shopping"
         options={{
           title: 'Compras',
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="cart" size={32} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <HugeIcon name="cart" size={32} color={focused ? '#FFFFFF' : color} strokeWidth={1.5} />
           ),
         }}
       />
@@ -88,8 +80,17 @@ export default function TabsLayout() {
         name="finances"
         options={{
           title: 'Finanças',
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="wallet" size={32} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <HugeIcon name="wallet" size={32} color={focused ? '#FFFFFF' : color} strokeWidth={1.5} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: 'Chat',
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatedChatIcon color={color} size={32} focused={focused} />
           ),
         }}
       />
@@ -97,17 +98,8 @@ export default function TabsLayout() {
         name="calendar"
         options={{
           title: 'Calendário',
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="calendar" size={32} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="savings"
-        options={{
-          title: 'Caixinhas',
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="cash" size={32} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <HugeIcon name="calendar" size={32} color={focused ? '#FFFFFF' : color} strokeWidth={1.5} />
           ),
         }}
       />
@@ -115,9 +107,15 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Perfil',
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="person" size={32} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <HugeIcon name="person" size={32} color={focused ? '#FFFFFF' : color} strokeWidth={1.5} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="savings"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen
