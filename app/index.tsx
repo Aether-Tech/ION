@@ -12,7 +12,9 @@ export default function Index() {
       hasUser: !!user, 
       loading, 
       needsOnboarding,
-      userUid: user?.firebaseUser?.uid 
+      userUid: user?.firebaseUser?.uid,
+      hasUsuario: !!user?.usuario,
+      usuarioNome: user?.usuario?.nome,
     });
     
     if (!loading) {
@@ -22,15 +24,18 @@ export default function Index() {
           console.log('Redirecionando para onboarding');
           router.replace('/onboarding');
         } else {
-          console.log('Redirecionando para chat');
+          console.log('Redirecionando para chat - usuário autenticado:', {
+            hasUsuario: !!user.usuario,
+            nome: user.usuario?.nome || user.phoneNumber,
+          });
           router.replace('/(tabs)/chat');
         }
       } else {
-        console.log('Redirecionando para login');
+        console.log('Redirecionando para login - usuário não autenticado');
         router.replace('/login');
       }
     }
-  }, [user, loading, needsOnboarding]);
+  }, [user, loading, needsOnboarding, router]);
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>

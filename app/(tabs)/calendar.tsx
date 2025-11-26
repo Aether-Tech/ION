@@ -1038,13 +1038,13 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
             </TouchableOpacity>
           )}
           {activeTab === 'calendar' && (
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={() => setPreferencesModalVisible(true)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <HugeIcon name="settings-outline" size={22} color={Colors.textPrimary} />
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={() => setPreferencesModalVisible(true)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <HugeIcon name="settings-outline" size={22} color={Colors.textPrimary} />
+          </TouchableOpacity>
           )}
         </View>
 
@@ -1197,7 +1197,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
         {/* FAB for Calendar */}
         {activeTab === 'calendar' && (
         <TouchableOpacity
-          style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 60 }]}
+          style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 80 }]}
             onPress={() => setCalendarModalVisible(true)}
         >
           <HugeIcon name="add" size={32} color={Colors.textInverse} />

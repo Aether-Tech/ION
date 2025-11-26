@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,11 +22,28 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, user, loading: authLoading, needsOnboarding } = useAuth();
   const Colors = useAppColors();
   const styles = getStyles(Colors);
+
+  // Redirecionar quando o usuário for autenticado
+  useEffect(() => {
+    if (success && !authLoading && user) {
+      console.log('Login bem-sucedido, redirecionando...', {
+        needsOnboarding,
+        hasUsuario: !!user.usuario,
+      });
+      setLoading(false); // Desabilitar loading antes de redirecionar
+      if (needsOnboarding) {
+        router.replace('/onboarding');
+      } else {
+        router.replace('/(tabs)/chat');
+      }
+    }
+  }, [success, user, authLoading, needsOnboarding, router]);
 
   const handleLogin = async () => {
     if (!email.trim()) {
@@ -47,14 +64,18 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
+    setSuccess(false);
     try {
       await login(email.trim(), password);
-      // O redirecionamento será feito automaticamente pelo index.tsx baseado no estado de autenticação
+      // Login bem-sucedido - mostrar feedback visual
+      setSuccess(true);
+      // Manter loading até o redirecionamento acontecer (via useEffect)
+      // Não desabilitar o loading aqui, deixar o useEffect gerenciar
     } catch (error) {
+      setSuccess(false);
+      setLoading(false);
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível fazer login. Verifique suas credenciais.';
       Alert.alert('Erro no Login', errorMessage);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -85,7 +106,9 @@ export default function LoginScreen() {
           <View style={styles.formContainer}>
             <Text style={styles.label}>Email</Text>
             <BlurView intensity={20} style={styles.inputContainer}>
-              <HugeIcon name="mail-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
+              <View style={styles.inputIcon}>
+                <HugeIcon name="mail-outline" size={24} color={Colors.primary} />
+              </View>
               <TextInput
                 style={styles.input}
                 placeholder="Ex: seu@email.com"
@@ -101,7 +124,9 @@ export default function LoginScreen() {
 
             <Text style={styles.label}>Senha</Text>
             <BlurView intensity={20} style={styles.inputContainer}>
-              <HugeIcon name="lock-closed-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
+              <View style={styles.inputIcon}>
+                <HugeIcon name="lock-closed-outline" size={24} color={Colors.primary} />
+              </View>
               <TextInput
                 style={styles.input}
                 placeholder="Digite sua senha"
@@ -125,12 +150,21 @@ export default function LoginScreen() {
             </BlurView>
 
             <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
+              style={[
+                styles.button, 
+                loading && styles.buttonDisabled,
+                success && styles.buttonSuccess
+              ]}
               onPress={handleLogin}
-              disabled={loading}
+              disabled={loading || success}
             >
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
+              ) : success ? (
+                <View style={styles.successContainer}>
+                  <HugeIcon name="checkmark-circle" size={24} color="#FFFFFF" />
+                  <Text style={styles.buttonText}>Login realizado!</Text>
+                </View>
               ) : (
                 <Text style={styles.buttonText}>Entrar</Text>
               )}
@@ -270,6 +304,14 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  buttonSuccess: {
+    backgroundColor: '#10B981', // Verde de sucesso
+  },
+  successContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   buttonText: {
     fontSize: 18,

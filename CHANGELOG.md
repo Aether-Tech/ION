@@ -144,3 +144,4 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 [1.1.0]: https://github.com/Aether-Tech/ION/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Aether-Tech/ION/releases/tag/v1.0.0
 
+

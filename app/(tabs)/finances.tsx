@@ -1451,9 +1451,29 @@ export default function FinancesScreen() {
           <TouchableOpacity
             style={styles.fab}
             onPress={() => setModalVisible(true)}
+            activeOpacity={0.8}
           >
-            <IONLogo size={18} variant="icon" />
-            <Text style={styles.fabText}>Nova Transação</Text>
+            {/* Background com liquid glass effect */}
+            <View style={styles.fabGlassContainer}>
+              {/* ⚠️ CONFIGURAÇÃO DO BLUR - Linha 1458 ⚠️ */}
+              {/* intensity: 0-100 (quanto maior, mais desfoque) */}
+              {/* tint: 'light' | 'dark' | 'default' (cor do blur) */}
+              <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+              {/* ⚠️ CONFIGURAÇÃO DAS CORES DO GRADIENTE - Linha 1459-1463 ⚠️ */}
+              {/* colors: array de cores em rgba (ex: ['rgba(9, 14, 24, 0.4)', 'rgba(14, 20, 32, 0.3)']) */}
+              {/* O último valor (0.4, 0.3) é a opacidade - ajuste para mudar a transparência */}
+              <LinearGradient
+                colors={['rgba(22, 34, 55, 0.4)', 'rgba(27, 36, 42, 0.3)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+            </View>
+            {/* Conteúdo do botão */}
+            <View style={styles.fabContent}>
+              <IONLogo size={18} variant="icon" />
+              <Text style={styles.fabText}>Nova Transação</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -2169,25 +2189,38 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
       alignItems: 'center',
     },
     fab: {
+      position: 'relative',
+      overflow: 'hidden',
+      borderRadius: 16,
+      maxWidth: 400,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.15)',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.08,
+      shadowRadius: 18,
+      elevation: 8,
+    },
+    // ⚠️ CONFIGURAÇÕES DO BLUR E CORES DO LIQUID GLASS ⚠️
+    // Edite estes valores para ajustar o efeito visual:
+    fabGlassContainer: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: 16,
+      overflow: 'hidden',
+      backgroundColor: 'rgba(15,20,30,0.15)',
+    },
+    fabContent: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: Colors.ionBlue,
       paddingHorizontal: 20,
       paddingVertical: 16,
-      borderRadius: 16,
       gap: 12,
-      maxWidth: 400,
-      shadowColor: Colors.ionBlue,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 12,
-      elevation: 8,
     },
     fabText: {
       fontSize: 16,
       fontWeight: 'bold',
-      color: Colors.backgroundDark,
+      color: '#FFFFFF',
     },
     modalOverlay: {
       flex: 1,

@@ -706,7 +706,7 @@ export default function ChatScreen() {
   // Calcular o espaçamento do input baseado no estado do teclado
   const inputBottomMargin = keyboardVisible 
     ? 0 // Quando o teclado está aberto, sem margem extra
-    : 70 + Math.max(insets.bottom, 8) + 8; // Quando fechado, espaço suficiente para a tab bar (70 + insets.bottom) + padding extra
+    : 70 + Math.max(insets.bottom, 8) + 24; // Quando fechado, espaço suficiente para a tab bar (70 + insets.bottom) + padding extra aumentado
 
   return (
     <View style={styles.container}>
@@ -863,7 +863,15 @@ export default function ChatScreen() {
 
           {/* Input Area */}
           <View style={{ paddingBottom: keyboardVisible ? 0 : inputBottomMargin }}>
-            <BlurView intensity={20} style={styles.inputContainer}>
+            <View style={styles.inputContainer}>
+              <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill} />
+              <LinearGradient
+                colors={['rgba(9, 14, 24, 0.4)', 'rgba(14, 20, 32, 0.3)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.inputContent}>
               <TouchableOpacity 
                 style={styles.inputIconButton}
                 onPress={() => setShowAttachmentModal(true)}
@@ -946,7 +954,8 @@ export default function ChatScreen() {
                   />
                 </TouchableOpacity>
               </View>
-            </BlurView>
+              </View>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -1133,16 +1142,18 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     color: Colors.textPrimary,
   },
   inputContainer: {
+    marginHorizontal: 16,
+    borderRadius: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(15,20,30,0.15)',
+    overflow: 'hidden',
+  },
+  inputContent: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    marginHorizontal: 16,
-    borderRadius: 32,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    backgroundColor: Colors.glassBackgroundLight,
-    overflow: 'hidden',
   },
   inputIconButton: {
     width: 32,

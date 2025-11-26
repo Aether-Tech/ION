@@ -1,20 +1,115 @@
 import { Tabs } from 'expo-router';
 import { HugeIcon } from '../../components/HugeIcon';
-import { AnimatedChatIcon } from '../../components/AnimatedChatIcon';
 import { useAuth } from '../../contexts/AuthContext';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppColors } from '../../hooks/useAppColors';
+import { LinearGradient } from 'expo-linear-gradient';
+import { TabBarIndicator } from '../../components/TabBarIndicator';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+
+// ===== CONFIGURAÇÕES DE PADDING DA NAVBAR =====
+const NAVBAR_PADDING_LEFT = 24;  // Ajuste este valor para mudar o padding esquerdo
+const NAVBAR_PADDING_RIGHT = 24; // Ajuste este valor para mudar o padding direito
+// ==============================================
+
+// Navbar customizada completamente do zero
+function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
+  const Colors = useAppColors();
+  const screenWidth = Dimensions.get('window').width;
+  const navbarWidth = screenWidth - NAVBAR_PADDING_LEFT - NAVBAR_PADDING_RIGHT;
+  
+  // ===== CONFIGURAÇÃO DOS ÍCONES =====
+  // ⚠️ EDITE OS VALORES DE iconOffset PARA AJUSTAR A POSIÇÃO HORIZONTAL DE CADA ÍCONE ⚠️
+  // Valores negativos movem o ícone para a esquerda
+  // Valores positivos movem o ícone para a direita
+  const tabs = [
+    { key: 'shopping', route: '/(tabs)/shopping', icon: 'cart', iconOffset: 5 },      // shopping - offset horizontal
+    { key: 'finances', route: '/(tabs)/finances', icon: 'wallet', iconOffset: 0 },   // finances - offset horizontal
+    { key: 'chat', route: '/(tabs)/chat', icon: 'chatbubbles', iconOffset: 0 },      // chat - offset horizontal
+    { key: 'calendar', route: '/(tabs)/calendar', icon: 'calendar', iconOffset: 0 },  // calendar - offset horizontal
+    { key: 'profile', route: '/(tabs)/profile', icon: 'person', iconOffset: -10 },     // profile - offset horizontal
+  ];
+  // ====================================
+
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        left: NAVBAR_PADDING_LEFT,
+        bottom: insets.bottom + 18,
+        width: navbarWidth,
+        height: 64,
+      }}
+    >
+      {/* Background com desfoque e liquid glass effect */}
+      <View style={styles.navbarContainer}>
+        <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+        <LinearGradient
+          colors={['rgba(9, 14, 24, 0.4)', 'rgba(14, 20, 32, 0.3)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
+
+      {/* Ícones */}
+      <View style={styles.iconsContainer}>
+        {tabs.map((tab, index) => {
+          const route = state.routes[index];
+          const { options } = descriptors[route.key];
+          const isFocused = state.index === index;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name as any);
+            }
+          };
+
+          return (
+            <TouchableOpacity
+              key={route.key}
+              onPress={onPress}
+              activeOpacity={0.7}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={styles.iconButton}
+            >
+              <View style={[styles.iconWrapper, tab.iconOffset !== 0 && { marginLeft: tab.iconOffset }]}>
+                <HugeIcon
+                  name={tab.icon as any}
+                  size={32}
+                  color={isFocused ? '#FFFFFF' : Colors.textSecondary}
+                  strokeWidth={1.5}
+                />
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Bolhinha indicadora */}
+      <View style={styles.indicatorContainer} pointerEvents="none">
+        <TabBarIndicator tabCount={5} tabBarWidth={navbarWidth} />
+      </View>
+    </View>
+  );
+}
 
 export default function TabsLayout() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const Colors = useAppColors();
-
+  
   useEffect(() => {
     if (!loading && !user) {
       router.replace('/login');
@@ -30,101 +125,103 @@ export default function TabsLayout() {
   }
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: '#FFFFFF',
-        tabBarInactiveTintColor: Colors.textSecondary,
-        tabBarShowLabel: false,
-        tabBarStyle: {
-          backgroundColor: Colors.backgroundDarkTertiary,
-          borderTopWidth: 0.5,
-          borderTopColor: Colors.border,
-          height: 70 + insets.bottom,
-          paddingBottom: Math.max(insets.bottom, 8),
-          paddingTop: 12,
-          position: 'absolute',
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-        },
-        tabBarIconStyle: {
-          marginTop: 4,
-        },
-        tabBarBackground: () => (
-          <BlurView
-            intensity={20}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              bottom: 0,
-              right: 0,
-              backgroundColor: Colors.glassBackground,
-            }}
-          />
-        ),
-      }}
-    >
-      <Tabs.Screen
-        name="shopping"
-        options={{
-          title: 'Compras',
-          tabBarIcon: ({ color, focused }) => (
-            <HugeIcon name="cart" size={32} color={focused ? '#FFFFFF' : color} strokeWidth={1.5} />
-          ),
+    <View style={{ flex: 1 }}>
+      <Tabs
+        tabBar={(props) => <CustomTabBar {...props} />}
+        screenOptions={{
+          headerShown: false,
         }}
-      />
-      <Tabs.Screen
-        name="finances"
-        options={{
-          title: 'Finanças',
-          tabBarIcon: ({ color, focused }) => (
-            <HugeIcon name="wallet" size={32} color={focused ? '#FFFFFF' : color} strokeWidth={1.5} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="chat"
-        options={{
-          title: 'Chat',
-          tabBarIcon: ({ color, focused }) => (
-            <AnimatedChatIcon color={color} size={32} focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="calendar"
-        options={{
-          title: 'Calendário',
-          tabBarIcon: ({ color, focused }) => (
-            <HugeIcon name="calendar" size={32} color={focused ? '#FFFFFF' : color} strokeWidth={1.5} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Perfil',
-          tabBarIcon: ({ color, focused }) => (
-            <HugeIcon name="person" size={32} color={focused ? '#FFFFFF' : color} strokeWidth={1.5} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="savings"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="reminders"
-        options={{
-          href: null,
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="shopping"
+          options={{
+            title: 'Compras',
+          }}
+        />
+        <Tabs.Screen
+          name="finances"
+          options={{
+            title: 'Finanças',
+          }}
+        />
+        <Tabs.Screen
+          name="chat"
+          options={{
+            title: 'Chat',
+          }}
+        />
+        <Tabs.Screen
+          name="calendar"
+          options={{
+            title: 'Calendário',
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Perfil',
+          }}
+        />
+        <Tabs.Screen
+          name="savings"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="reminders"
+          options={{
+            href: null,
+          }}
+        />
+      </Tabs>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  navbarContainer: {
+    flex: 1,
+    borderRadius: 28,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(15,20,30,0.15)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 0,
+  },
+  iconsContainer: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    alignItems: 'center', // ⚠️ Centraliza verticalmente os ícones
+    // ⚠️ DISTRIBUIÇÃO HORIZONTAL DOS ÍCONES:
+    // 'space-around' = espaça igualmente com espaço nas bordas
+    // 'space-between' = espaça igualmente sem espaço nas bordas
+    // 'space-evenly' = espaça igualmente com espaço igual em todos os lados
+    // 'center' = centraliza todos os ícones juntos
+    justifyContent: 'space-around',
+  },
+  iconButton: {
+    flex: 1, // ⚠️ Cada botão ocupa espaço igual na navbar
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    paddingVertical: 0,
+    // ⚠️ PADDING HORIZONTAL - Ajuste este valor para mudar o espaçamento lateral de cada ícone
+    paddingHorizontal: 8,
+  },
+  iconWrapper: {
+    // ⚠️ POSIÇÃO VERTICAL DO ÍCONE - Ajuste este valor para mover o ícone para cima/baixo
+    // Valores negativos = para cima, valores positivos = para baixo
+    marginTop: 0,
+  },
+  indicatorContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
 

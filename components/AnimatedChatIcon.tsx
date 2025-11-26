@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Animated, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Circle, Path, G } from 'react-native-svg';
 import { HugeIcon } from './HugeIcon';
 import { HugeiconsIcon } from '@hugeicons/react-native';
@@ -133,7 +132,7 @@ export function AnimatedChatIcon({ color, size = 32, focused = false }: Animated
     return (
       <Path
         key={index}
-        d={`M ${adjustedStartX.toFixed(2)} ${adjustedStartY.toFixed(2)} A ${arcRadius.toFixed(2)} ${arcRadius.toFixed(2)} 0 ${largeArcFlag} 1 ${endX.toFixed(2)} ${endY.toFixed(2)}`}
+        d={`M ${adjustedStartX} ${adjustedStartY} A ${arcRadius} ${arcRadius} 0 ${largeArcFlag} 1 ${endX} ${endY}`}
         stroke="url(#gradient)"
         strokeWidth={strokeWidth}
         fill="none"
@@ -148,6 +147,12 @@ export function AnimatedChatIcon({ color, size = 32, focused = false }: Animated
   const containerWidth = circleSize + 8; // Adicionar padding horizontal
   const containerHeight = circleSize;
 
+  const circleStyle = {
+    width: circleSize,
+    height: circleSize,
+    borderRadius: circleSize / 2,
+  };
+
   return (
     <View style={[styles.container, { width: containerWidth, height: containerHeight }]}>
       {/* Círculo com gradiente animado e efeito de onda (apenas outline) */}
@@ -155,24 +160,22 @@ export function AnimatedChatIcon({ color, size = 32, focused = false }: Animated
         style={[
           styles.circleContainer,
           {
-            width: circleSize,
-            height: circleSize,
+            ...circleStyle,
             transform: [{ rotate }],
           },
         ]}
       >
-        <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark">
+        <View
+          style={[StyleSheet.absoluteFill, circleStyle, styles.blurClip]}
+        >
           <Svg width={circleSize} height={circleSize}>
             <Defs>
             <SvgLinearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <Stop offset="0%" stopColor={Colors.primary} stopOpacity="1" />
-              <Stop offset="1%" stopColor={Colors.primary} stopOpacity="1" />
-              <Stop offset="25%" stopColor={Colors.primary} stopOpacity="0.95" />
-              <Stop offset="33%" stopColor={Colors.ionBlue} stopOpacity="1" />
-              <Stop offset="50%" stopColor={Colors.ionBlue} stopOpacity="0.95" />
-              <Stop offset="66%" stopColor={Colors.primaryLight} stopOpacity="1" />
-              <Stop offset="75%" stopColor={Colors.primaryLight} stopOpacity="0.95" />
-              <Stop offset="99%" stopColor={Colors.primary} stopOpacity="1" />
+              <Stop offset="20%" stopColor={Colors.primary} stopOpacity="1" />
+              <Stop offset="40%" stopColor={Colors.ionBlue} stopOpacity="1" />
+              <Stop offset="60%" stopColor={Colors.primaryLight} stopOpacity="1" />
+              <Stop offset="80%" stopColor={Colors.primaryLight} stopOpacity="1" />
               <Stop offset="100%" stopColor={Colors.primary} stopOpacity="1" />
             </SvgLinearGradient>
             </Defs>
@@ -186,7 +189,7 @@ export function AnimatedChatIcon({ color, size = 32, focused = false }: Animated
               return createArc(startAngle, endAngle, currentStrokeWidth, index);
             })}
           </Svg>
-        </BlurView>
+        </View>
       </Animated.View>
 
       {/* Ícone central */}
@@ -224,6 +227,9 @@ const getStyles = (iconSize: number) => StyleSheet.create({
     position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  blurClip: {
+    overflow: 'hidden',
   },
   iconSvg: {
     justifyContent: 'center',

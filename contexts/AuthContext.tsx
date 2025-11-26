@@ -10,7 +10,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { usuariosService } from '../services/supabaseService';
-import { Usuario } from '../services/supabase';
+import { Usuario, supabase } from '../services/supabase';
 import { firestoreService } from '../services/firestoreService';
 
 interface User {
@@ -71,12 +71,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           
           // Se não tem perfil ou não completou onboarding, mostrar onboarding
-          // Mesmo se houver erro no Firestore, assumir que precisa de onboarding
-          if (!userProfile || !userProfile.hasCompletedOnboarding) {
-            console.log('Usuário precisa de onboarding:', {
-              hasProfile: !!userProfile,
-              hasCompletedOnboarding: userProfile?.hasCompletedOnboarding,
-            });
+          // Verificar explicitamente se hasCompletedOnboarding é true
+          const needsOnboarding = !userProfile || userProfile.hasCompletedOnboarding !== true;
+          
+          console.log('Verificação de onboarding:', {
+            hasProfile: !!userProfile,
+            hasCompletedOnboarding: userProfile?.hasCompletedOnboarding,
+            needsOnboarding,
+          });
+          
+          if (needsOnboarding) {
+            console.log('Usuário precisa de onboarding');
             setNeedsOnboarding(true);
             const userData: User = {
               phoneNumber: '', // Será coletado no onboarding
@@ -102,7 +107,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
 
+          console.log('Buscando usuário no Supabase com telefone:', phoneNumber);
           const usuario = await usuariosService.getByCelular(phoneNumber);
+          console.log('Usuário encontrado no Supabase:', usuario ? `ID: ${usuario.id}, Nome: ${usuario.nome}` : 'não encontrado');
           
           if (usuario && usuario.status === 'ativo') {
             const userData: User = {
@@ -112,6 +119,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               firebaseUser,
             };
             
+            console.log('Definindo usuário autenticado:', {
+              phoneNumber: userData.phoneNumber,
+              usuarioId: userData.usuarioId,
+              nome: userData.usuario?.nome,
+            });
+            
             await AsyncStorage.setItem('user', JSON.stringify({
               phoneNumber: userData.phoneNumber,
               usuarioId: userData.usuarioId,
@@ -120,7 +133,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setNeedsOnboarding(false);
           } else {
             // Usuário não encontrado no Supabase ou inativo
-            // Mas já tem perfil no Firestore, então manter autenticado
+            // Tentar buscar pelo email do Firebase como fallback
+            console.log('Usuário não encontrado pelo telefone, tentando buscar pelo email...');
+            const email = firebaseUser.email;
+            if (email) {
+              // Tentar buscar usuário pelo email no Supabase
+              try {
+                const { data: usuariosByEmail } = await supabase
+                  .from('usuarios')
+                  .select('*')
+                  .eq('email', email)
+                  .eq('status', 'ativo')
+                  .limit(1);
+                
+                if (usuariosByEmail && usuariosByEmail.length > 0) {
+                  const usuarioByEmail = usuariosByEmail[0];
+                  console.log('Usuário encontrado pelo email:', `ID: ${usuarioByEmail.id}, Nome: ${usuarioByEmail.nome}`);
+                  
+                  // Atualizar o perfil no Firestore com o telefone correto
+                  if (usuarioByEmail.celular && usuarioByEmail.celular !== phoneNumber) {
+                    await firestoreService.updatePhoneNumber(firebaseUser.uid, usuarioByEmail.celular);
+                  }
+                  
+                  const userData: User = {
+                    phoneNumber: usuarioByEmail.celular,
+                    usuarioId: usuarioByEmail.id,
+                    usuario: usuarioByEmail,
+                    firebaseUser,
+                  };
+                  
+                  await AsyncStorage.setItem('user', JSON.stringify({
+                    phoneNumber: userData.phoneNumber,
+                    usuarioId: userData.usuarioId,
+                  }));
+                  setUser(userData);
+                  setNeedsOnboarding(false);
+                  setLoading(false);
+                  return;
+                }
+              } catch (emailError) {
+                console.warn('Erro ao buscar usuário pelo email:', emailError);
+              }
+            }
+            
+            // Se não encontrou pelo email também, manter autenticado mas sem dados do Supabase
+            console.warn('Usuário não encontrado no Supabase, mantendo autenticado apenas com Firestore');
             const userData: User = {
               phoneNumber: phoneNumber,
               firebaseUser,
