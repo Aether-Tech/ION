@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { useAppColors } from '../hooks/useAppColors';
 import { IONLogo } from '../components/IONLogo';
 import { useAuth } from '../contexts/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function RegisterScreen() {
   const [nome, setNome] = useState('');
@@ -167,11 +168,11 @@ export default function RegisterScreen() {
                   onPress={() => setShowPassword(!showPassword)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <HugeIcon 
-                    name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                    size={24} 
-                    color={Colors.textSecondary} 
-                  />
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={24}
+                  color={Colors.textSecondary}
+                />
                 </TouchableOpacity>
               </BlurView>
 
@@ -192,11 +193,11 @@ export default function RegisterScreen() {
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <HugeIcon 
-                    name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
-                    size={24} 
-                    color={Colors.textSecondary} 
-                  />
+                <Ionicons
+                  name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={24}
+                  color={Colors.textSecondary}
+                />
                 </TouchableOpacity>
               </BlurView>
 

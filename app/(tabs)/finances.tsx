@@ -1011,6 +1011,36 @@ export default function FinancesScreen() {
             </BlurView>
           )}
 
+          {/* Banner de Caixinhas */}
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/savings')}
+            activeOpacity={0.8}
+            style={{ marginBottom: 16 }}
+          >
+            <BlurView intensity={20} style={styles.caixinhasBanner}>
+              <LinearGradient
+                colors={[Colors.ionBlue + '20', Colors.primary + '20']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.caixinhasBannerContent}>
+                <View style={styles.caixinhasBannerLeft}>
+                  <View style={styles.caixinhasBannerIconContainer}>
+                    <HugeIcon name="save" size={32} color={Colors.ionBlue} strokeWidth={1.5} />
+                  </View>
+                  <View style={styles.caixinhasBannerText}>
+                    <Text style={styles.caixinhasBannerTitle}>Caixinhas</Text>
+                    <Text style={styles.caixinhasBannerSubtitle}>
+                      Gerencie suas metas de economia
+                    </Text>
+                  </View>
+                </View>
+                <HugeIcon name="chevron-forward" size={24} color={Colors.textSecondary} strokeWidth={1.5} />
+              </View>
+            </BlurView>
+          </TouchableOpacity>
+
           {/* Gráfico de Categorias */}
           {categoryEntries.length > 0 && (
             <BlurView intensity={20} style={styles.chartCard}>
@@ -1297,35 +1327,6 @@ export default function FinancesScreen() {
               </View>
             )}
           </BlurView>
-
-          {/* Banner de Caixinhas */}
-          <TouchableOpacity
-            onPress={() => router.push('/(tabs)/savings')}
-            activeOpacity={0.8}
-          >
-            <BlurView intensity={20} style={styles.caixinhasBanner}>
-              <LinearGradient
-                colors={[Colors.ionBlue + '20', Colors.primary + '20']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-              <View style={styles.caixinhasBannerContent}>
-                <View style={styles.caixinhasBannerLeft}>
-                  <View style={styles.caixinhasBannerIconContainer}>
-                    <HugeIcon name="save" size={32} color={Colors.ionBlue} strokeWidth={1.5} />
-                  </View>
-                  <View style={styles.caixinhasBannerText}>
-                    <Text style={styles.caixinhasBannerTitle}>Caixinhas</Text>
-                    <Text style={styles.caixinhasBannerSubtitle}>
-                      Gerencie suas metas de economia
-                    </Text>
-                  </View>
-                </View>
-                <HugeIcon name="chevron-forward" size={24} color={Colors.textSecondary} strokeWidth={1.5} />
-              </View>
-            </BlurView>
-          </TouchableOpacity>
 
           {/* Exportação de Transações */}
           <BlurView intensity={20} style={[styles.integrationCard, styles.integrationCardSpacing]}>
