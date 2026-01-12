@@ -40,6 +40,8 @@ import {
   Notification01Icon,
   Moon01Icon,
   Logout01Icon,
+  Mic01Icon,
+  SentIcon,
 } from '@hugeicons/core-free-icons';
 
 interface HugeIconProps {
@@ -47,6 +49,7 @@ interface HugeIconProps {
   size?: number;
   color?: string;
   strokeWidth?: number;
+  style?: any;
 }
 
 // Mapeamento de nomes de ícones do Ionicons para os componentes do Hugeicons (gratuitos)
@@ -59,7 +62,7 @@ const iconMap: { [key: string]: any } = {
   'person': UserIcon,
   'checkmark-circle': CheckmarkCircle01Icon,
   'add-circle': AddCircleIcon,
-  'mic': CameraMicrophone01Icon,
+  'mic': Mic01Icon,
   'stop-circle': StopCircleIcon,
   'arrow-up': ArrowUp01Icon,
   'close': Remove01Icon,
@@ -107,11 +110,12 @@ const iconMap: { [key: string]: any } = {
   'copy': File01Icon, // Ícone de copiar - usando File
   'list': ShoppingCart01Icon, // Ícone de lista - usando ShoppingCart
   'list-outline': ShoppingCart01Icon, // Ícone de lista - usando ShoppingCart
+  'send': SentIcon,
 };
 
 // Componente que renderiza ícones do Hugeicons usando o pacote oficial gratuito
 // Documentação: https://hugeicons.com/docs/integrations/react-native/quick-start
-export function HugeIcon({ name, size = 24, color = '#000000', strokeWidth = 1.5 }: HugeIconProps) {
+export function HugeIcon({ name, size = 24, color = '#000000', strokeWidth = 1.5, style }: HugeIconProps) {
   const IconComponent = iconMap[name];
 
   if (!IconComponent) {
@@ -126,6 +130,7 @@ export function HugeIcon({ name, size = 24, color = '#000000', strokeWidth = 1.5
       size={size}
       color={color}
       strokeWidth={strokeWidth}
+      style={style}
     />
   );
 }

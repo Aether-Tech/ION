@@ -82,11 +82,11 @@ export default function ChatScreen() {
           allowsRecordingIOS: true,
           playsInSilentModeIOS: true,
         });
-        
+
         // Solicitar permissões de câmera e galeria
         const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
         const mediaLibraryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        
+
         if (!cameraPermission.granted) {
           console.warn('Camera permission not granted');
         }
@@ -154,7 +154,7 @@ export default function ChatScreen() {
       const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
-      
+
       recordingRef.current = recording;
       setIsRecording(true);
       setRecordingTime(0);
@@ -230,17 +230,17 @@ export default function ChatScreen() {
 
   const handleTakePhoto = async () => {
     console.log('📸 handleTakePhoto called');
-    
+
     // Fechar modal primeiro
     setShowAttachmentModal(false);
     console.log('📸 Modal closed');
-    
+
     try {
       // Verificar permissões antes de abrir
       console.log('📸 Requesting camera permissions...');
       const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
       console.log('📸 Camera permission result:', cameraPermission);
-      
+
       if (!cameraPermission.granted) {
         Alert.alert(
           'Permissão necessária',
@@ -276,17 +276,17 @@ export default function ChatScreen() {
 
   const handlePickFromGallery = async () => {
     console.log('🖼️ handlePickFromGallery called');
-    
+
     // Fechar modal primeiro
     setShowAttachmentModal(false);
     console.log('🖼️ Modal closed');
-    
+
     try {
       // Verificar permissões antes de abrir
       console.log('🖼️ Requesting media library permissions...');
       const mediaLibraryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       console.log('🖼️ Media library permission result:', mediaLibraryPermission);
-      
+
       if (!mediaLibraryPermission.granted) {
         Alert.alert(
           'Permissão necessária',
@@ -326,18 +326,18 @@ export default function ChatScreen() {
       console.log('Document picker already in progress, ignoring...');
       return;
     }
-    
+
     // Fechar modal primeiro
     setShowAttachmentModal(false);
     pickingDocumentRef.current = true;
     setIsPickingDocument(true);
-    
+
     try {
       // Pequeno delay para garantir que o modal feche completamente
       await new Promise(resolve => setTimeout(resolve, 600));
 
       console.log('Opening document picker...');
-      
+
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
         copyToCacheDirectory: true,
@@ -370,16 +370,16 @@ export default function ChatScreen() {
         name: asset.name,
         mimeType: asset.mimeType || 'application/octet-stream',
       });
-      
+
       pickingDocumentRef.current = false;
       setIsPickingDocument(false);
     } catch (error) {
       console.error('Error picking document:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      
+
       // Verificar se é o erro de "document picking in progress"
-      if (errorMessage.includes('Different document picking in progress') || 
-          errorMessage.includes('document picking in progress')) {
+      if (errorMessage.includes('Different document picking in progress') ||
+        errorMessage.includes('document picking in progress')) {
         Alert.alert(
           'Aguarde',
           'Um seletor de documento já está aberto. Por favor, aguarde alguns segundos e tente novamente.'
@@ -387,7 +387,7 @@ export default function ChatScreen() {
       } else {
         Alert.alert('Erro', `Não foi possível selecionar o documento: ${errorMessage}`);
       }
-      
+
       pickingDocumentRef.current = false;
       setIsPickingDocument(false);
     }
@@ -409,7 +409,7 @@ export default function ChatScreen() {
 
     const imageUri = selectedImage.uri;
     const messageText = inputText || '';
-    
+
     const userMessage: Message = {
       id: Date.now().toString(),
       text: messageText || 'Enviei uma imagem',
@@ -468,11 +468,11 @@ export default function ChatScreen() {
           );
         }
       );
-      
+
       if (response.success && response.data) {
         const responseData = response.data as any;
         const aiResponse = responseData.message || responseData.response || responseData.text || responseData;
-        
+
         if (typeof aiResponse === 'string') {
           setMessages((prev) =>
             prev.map((msg) =>
@@ -491,11 +491,11 @@ export default function ChatScreen() {
         prev.map((msg) =>
           msg.id === aiMessageId
             ? {
-                ...msg,
-                text: 'Desculpe, ocorreu um erro ao processar a imagem. Tente novamente.',
-                isThinking: false,
-                isTyping: false,
-              }
+              ...msg,
+              text: 'Desculpe, ocorreu um erro ao processar a imagem. Tente novamente.',
+              isThinking: false,
+              isTyping: false,
+            }
             : msg
         )
       );
@@ -512,7 +512,7 @@ export default function ChatScreen() {
     }
 
     const messageText = inputText || '';
-    
+
     const userMessage: Message = {
       id: Date.now().toString(),
       text: messageText || `Enviei um documento: ${selectedDocument.name}`,
@@ -536,11 +536,11 @@ export default function ChatScreen() {
         selectedDocument.name,
         selectedDocument.mimeType
       );
-      
+
       if (response.success && response.data) {
         const responseData = response.data as any;
         const aiResponse = responseData.message || responseData.response || responseData.text || responseData;
-        
+
         if (typeof aiResponse === 'string') {
           const aiMessage: Message = {
             id: (Date.now() + 1).toString(),
@@ -628,31 +628,31 @@ export default function ChatScreen() {
         // userId
         user.usuarioId
       );
-      
+
       console.log('API Response:', JSON.stringify(response, null, 2));
-      
+
       if (response.success && response.data) {
         const responseData = response.data as any;
-        
+
         if (responseData.error) {
           throw new Error(responseData.error);
         }
-        
+
         const aiResponse = responseData.message || responseData.response || responseData.text || responseData;
-        
+
         if (typeof aiResponse !== 'string') {
           console.error('Invalid response format:', aiResponse);
           throw new Error('Formato de resposta inválido da API');
         }
-        
+
         const responseLower = aiResponse.toLowerCase();
-        if (responseLower.includes('erro ao processar sua imagem') || 
-            responseLower.includes('erro ao processar imagem') ||
-            (responseLower.includes('imagem') && responseLower.includes('erro'))) {
+        if (responseLower.includes('erro ao processar sua imagem') ||
+          responseLower.includes('erro ao processar imagem') ||
+          (responseLower.includes('imagem') && responseLower.includes('erro'))) {
           console.warn('API retornou erro sobre imagem sem imagem ter sido enviada');
           throw new Error('Erro na resposta da API: mensagem incorreta sobre imagem');
         }
-        
+
         // Atualizar mensagem final e remover estado de digitação
         setMessages((prev) =>
           prev.map((msg) =>
@@ -663,18 +663,18 @@ export default function ChatScreen() {
         );
       } else {
         const errorMsg = response.error || 'Erro ao enviar mensagem';
-        
+
         if (errorMsg.includes('Nenhum endpoint') || errorMsg.includes('404')) {
           throw new Error('O serviço de chat não está disponível no momento. Verifique se a API está configurada corretamente.');
         }
-        
+
         throw new Error(errorMsg);
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      
+
       let errorText = 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.';
-      
+
       if (error instanceof Error) {
         const errorLower = error.message.toLowerCase();
         if (!errorLower.includes('imagem')) {
@@ -687,7 +687,7 @@ export default function ChatScreen() {
           }
         }
       }
-      
+
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === aiMessageId
@@ -704,7 +704,7 @@ export default function ChatScreen() {
   const styles = getStyles(Colors);
 
   // Calcular o espaçamento do input baseado no estado do teclado
-  const inputBottomMargin = keyboardVisible 
+  const inputBottomMargin = keyboardVisible
     ? 0 // Quando o teclado está aberto, sem margem extra
     : 70 + Math.max(insets.bottom, 8) + 24; // Quando fechado, espaço suficiente para a tab bar (70 + insets.bottom) + padding extra aumentado
 
@@ -872,88 +872,89 @@ export default function ChatScreen() {
                 style={StyleSheet.absoluteFill}
               />
               <View style={styles.inputContent}>
-              <TouchableOpacity 
-                style={styles.inputIconButton}
-                onPress={() => setShowAttachmentModal(true)}
-                disabled={!!selectedImage || !!selectedDocument}
-              >
-                <HugeIcon 
-                  name="add-circle" 
-                  size={28} 
-                  color={(selectedImage || selectedDocument) ? Colors.textSecondary + '80' : Colors.textSecondary}
-                  strokeWidth={1.5}
-                />
-              </TouchableOpacity>
-              <TextInput
-                style={styles.input}
-                placeholder={
-                  selectedImage 
-                    ? "Adicione uma mensagem para a imagem..." 
-                    : selectedDocument
-                    ? "Adicione uma mensagem para o documento..."
-                    : "Converse com a ION..."
-                }
-                placeholderTextColor={Colors.textSecondary}
-                value={inputText}
-                onChangeText={setInputText}
-                multiline
-                maxLength={500}
-              />
-              <View style={styles.inputActions}>
-                {!selectedImage && !selectedDocument && (
-                  <>
-                    <TouchableOpacity
-                      style={[styles.inputIconButton, isRecording && styles.recordingButton]}
-                      onPress={isRecording ? () => stopRecording(false) : startRecording}
-                      disabled={loading || transcribing}
-                    >
-                      {transcribing ? (
-                        <ActivityIndicator size="small" color={Colors.primary} />
-                      ) : (
-                        <HugeIcon
-                          name={isRecording ? "stop-circle" : "mic"}
-                          size={28}
-                          color={isRecording ? Colors.error || '#FF3B30' : Colors.textSecondary}
-                          strokeWidth={1.5}
-                        />
-                      )}
-                    </TouchableOpacity>
-                    {isRecording && (
-                      <View style={styles.recordingIndicator}>
-                        <View style={styles.recordingDot} />
-                        <Text style={styles.recordingTime}>
-                          {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
-                        </Text>
-                      </View>
-                    )}
-                  </>
-                )}
                 <TouchableOpacity
-                  style={[
-                    styles.sendButton, 
-                    (!inputText.trim() && !isRecording && !selectedImage && !selectedDocument) && styles.sendButtonDisabled
-                  ]}
-                  onPress={() => {
-                    if (selectedImage) {
-                      handleSendImage();
-                    } else if (selectedDocument) {
-                      handleSendDocument();
-                    } else if (isRecording) {
-                      stopRecording(true);
-                    } else {
-                      sendMessage();
-                    }
-                  }}
-                  disabled={(!inputText.trim() && !isRecording && !selectedImage && !selectedDocument) || loading || transcribing}
+                  style={styles.inputIconButton}
+                  onPress={() => setShowAttachmentModal(true)}
+                  disabled={!!selectedImage || !!selectedDocument}
                 >
                   <HugeIcon
-                    name="arrow-up"
-                    size={24}
-                    color={(inputText.trim() || isRecording || selectedImage || selectedDocument) ? Colors.textInverse : Colors.textSecondary}
+                    name="add-circle"
+                    size={28}
+                    color={(selectedImage || selectedDocument) ? Colors.textSecondary + '80' : Colors.textSecondary}
                     strokeWidth={1.5}
                   />
                 </TouchableOpacity>
-              </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder={
+                    selectedImage
+                      ? "Adicione uma mensagem para a imagem..."
+                      : selectedDocument
+                        ? "Adicione uma mensagem para o documento..."
+                        : "Converse com a ION..."
+                  }
+                  placeholderTextColor={Colors.textSecondary}
+                  value={inputText}
+                  onChangeText={setInputText}
+                  multiline
+                  maxLength={500}
+                />
+                <View style={styles.inputActions}>
+                  {!selectedImage && !selectedDocument && (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.inputIconButton, isRecording && styles.recordingButton]}
+                        onPress={isRecording ? () => stopRecording(false) : startRecording}
+                        disabled={loading || transcribing}
+                      >
+                        {transcribing ? (
+                          <ActivityIndicator size="small" color={Colors.primary} />
+                        ) : (
+                          <HugeIcon
+                            name={isRecording ? "stop-circle" : "mic"}
+                            size={28}
+                            color={isRecording ? Colors.error || '#FF3B30' : Colors.textSecondary}
+                            strokeWidth={1.5}
+                          />
+                        )}
+                      </TouchableOpacity>
+                      {isRecording && (
+                        <View style={styles.recordingIndicator}>
+                          <View style={styles.recordingDot} />
+                          <Text style={styles.recordingTime}>
+                            {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                          </Text>
+                        </View>
+                      )}
+                    </>
+                  )}
+                  <TouchableOpacity
+                    style={[
+                      styles.sendButton,
+                      (!inputText.trim() && !isRecording && !selectedImage && !selectedDocument) && styles.sendButtonDisabled
+                    ]}
+                    onPress={() => {
+                      if (selectedImage) {
+                        handleSendImage();
+                      } else if (selectedDocument) {
+                        handleSendDocument();
+                      } else if (isRecording) {
+                        stopRecording(true);
+                      } else {
+                        sendMessage();
+                      }
+                    }}
+                    disabled={(!inputText.trim() && !isRecording && !selectedImage && !selectedDocument) || loading || transcribing}
+                  >
+                    <HugeIcon
+                      name="send"
+                      size={24}
+                      color={(inputText.trim() || isRecording || selectedImage || selectedDocument) ? Colors.textInverse : Colors.textSecondary}
+                      strokeWidth={1.5}
+                      style={{ marginRight: 4 }}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </View>
@@ -984,7 +985,7 @@ export default function ChatScreen() {
               <HugeIcon name="camera" size={24} color={Colors.primary} strokeWidth={1.5} />
               <Text style={styles.modalOptionText}>Tirar Foto</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.modalOption}
               onPress={() => handlePickFromGallery()}
@@ -993,16 +994,16 @@ export default function ChatScreen() {
               <HugeIcon name="images" size={24} color={Colors.primary} strokeWidth={1.5} />
               <Text style={styles.modalOptionText}>Escolher da Galeria</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={[styles.modalOption, isPickingDocument && styles.modalOptionDisabled]}
               onPress={() => handlePickDocument()}
               activeOpacity={0.7}
               disabled={isPickingDocument}
             >
-              <HugeIcon 
-                name="document" 
-                size={24} 
+              <HugeIcon
+                name="document"
+                size={24}
                 color={isPickingDocument ? Colors.textSecondary : Colors.primary}
                 strokeWidth={1.5}
               />
@@ -1013,7 +1014,7 @@ export default function ChatScreen() {
                 {isPickingDocument ? 'Abrindo...' : 'Anexar Documento'}
               </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={[styles.modalOption, styles.modalCancel]}
               onPress={() => setShowAttachmentModal(false)}
@@ -1030,365 +1031,365 @@ export default function ChatScreen() {
 
 function getStyles(Colors: ReturnType<typeof useAppColors>) {
   return StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-  },
-  messagesContainer: {
-    flex: 1,
-  },
-  messagesContent: {
-    padding: 16,
-    paddingBottom: 8,
-  },
-  messageRow: {
-    flexDirection: 'row',
-    marginBottom: 24,
-    alignItems: 'flex-end',
-  },
-  userMessageRow: {
-    justifyContent: 'flex-end',
-  },
-  aiMessageRow: {
-    justifyContent: 'flex-start',
-  },
-  aiAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: `rgba(0, 191, 255, 0.2)`,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: `rgba(0, 191, 255, 0.3)`,
-  },
-  userAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: `rgba(43, 108, 238, 0.2)`,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 12,
-    overflow: 'hidden',
-  },
-  userAvatarImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  messageContent: {
-    flex: 1,
-    maxWidth: '75%',
-  },
-  messageLabel: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    marginBottom: 4,
-  },
-  messageBubble: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  userBubble: {
-    backgroundColor: Colors.primary,
-    borderBottomRightRadius: 4,
-    borderColor: Colors.primary,
-  },
-  aiBubble: {
-    backgroundColor: Colors.glassBackground,
-    borderBottomLeftRadius: 4,
-    borderColor: Colors.glassBorder,
-  },
-  messageText: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  userText: {
-    color: Colors.textInverse,
-  },
-  aiText: {
-    color: Colors.textPrimary,
-  },
-  chipsContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 0,
-    paddingBottom: 4,
-  },
-  chipsScroll: {
-    flexDirection: 'row',
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    backgroundColor: Colors.glassBackground,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-  },
-  chipText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-  },
-  inputContainer: {
-    marginHorizontal: 16,
-    borderRadius: 32,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-    backgroundColor: 'rgba(15,20,30,0.15)',
-    overflow: 'hidden',
-  },
-  inputContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  inputIconButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  input: {
-    flex: 1,
-    maxHeight: 100,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: Colors.textPrimary,
-    marginHorizontal: 4,
-  },
-  inputActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendButtonDisabled: {
-    backgroundColor: Colors.backgroundDarkTertiary,
-  },
-  recordingButton: {
-    backgroundColor: `rgba(255, 59, 48, 0.1)`,
-  },
-  recordingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: `rgba(255, 59, 48, 0.1)`,
-  },
-  recordingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.error || '#FF3B30',
-    marginRight: 6,
-  },
-  recordingTime: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.error || '#FF3B30',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: Colors.glassBackground,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 40,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    borderBottomWidth: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  modalOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: Colors.glassBackgroundLight,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-  },
-  modalOptionText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-    marginLeft: 12,
-  },
-  modalOptionDisabled: {
-    opacity: 0.5,
-  },
-  modalOptionTextDisabled: {
-    color: Colors.textSecondary,
-  },
-  modalCancel: {
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-    marginTop: 8,
-    marginBottom: 0,
-  },
-  modalCancelText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.error || '#FF3B30',
-    textAlign: 'center',
-    width: '100%',
-  },
-  messageImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  attachmentContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0, 191, 255, 0.1)',
-    marginBottom: 8,
-  },
-  attachmentContainerUser: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  attachmentText: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 8,
-    flex: 1,
-  },
-  messageTextWithAttachment: {
-    marginTop: 8,
-  },
-  imagePreviewContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  imagePreview: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    position: 'relative',
-  },
-  imagePreviewImage: {
-    width: '100%',
-    height: 200,
-  },
-  imagePreviewCancel: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 20,
-    padding: 4,
-  },
-  documentPreviewContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  documentPreview: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    position: 'relative',
-    padding: 16,
-  },
-  documentPreviewContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingRight: 40,
-  },
-  documentPreviewName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-    marginLeft: 12,
-    flex: 1,
-  },
-  documentPreviewCancel: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 20,
-    padding: 4,
-  },
-  thinkingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  thinkingIndicator: {
-    marginRight: 8,
-  },
-  thinkingText: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: Colors.textSecondary,
-  },
-  typingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  typingDots: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  typingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.ionBlue || Colors.primary,
-    marginRight: 4,
-    opacity: 0.6,
-  },
-  typingText: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: Colors.textSecondary,
-  },
-  messageTextTyping: {
-    // Estilo adicional quando está digitando
-  },
-  cursor: {
-    color: Colors.primary,
-    opacity: 0.8,
-    fontWeight: 'bold',
-  },
+    container: {
+      flex: 1,
+    },
+    safeArea: {
+      flex: 1,
+    },
+    content: {
+      flex: 1,
+    },
+    messagesContainer: {
+      flex: 1,
+    },
+    messagesContent: {
+      padding: 16,
+      paddingBottom: 8,
+    },
+    messageRow: {
+      flexDirection: 'row',
+      marginBottom: 24,
+      alignItems: 'flex-end',
+    },
+    userMessageRow: {
+      justifyContent: 'flex-end',
+    },
+    aiMessageRow: {
+      justifyContent: 'flex-start',
+    },
+    aiAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: `rgba(0, 191, 255, 0.2)`,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+      borderWidth: 2,
+      borderColor: `rgba(0, 191, 255, 0.3)`,
+    },
+    userAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: `rgba(43, 108, 238, 0.2)`,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: 12,
+      overflow: 'hidden',
+    },
+    userAvatarImage: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+    },
+    messageContent: {
+      flex: 1,
+      maxWidth: '75%',
+    },
+    messageLabel: {
+      fontSize: 13,
+      color: Colors.textSecondary,
+      marginBottom: 4,
+    },
+    messageBubble: {
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 16,
+      borderWidth: 1,
+      overflow: 'hidden',
+    },
+    userBubble: {
+      backgroundColor: Colors.primary,
+      borderBottomRightRadius: 4,
+      borderColor: Colors.primary,
+    },
+    aiBubble: {
+      backgroundColor: Colors.glassBackground,
+      borderBottomLeftRadius: 4,
+      borderColor: Colors.glassBorder,
+    },
+    messageText: {
+      fontSize: 16,
+      lineHeight: 22,
+    },
+    userText: {
+      color: Colors.textInverse,
+    },
+    aiText: {
+      color: Colors.textPrimary,
+    },
+    chipsContainer: {
+      paddingHorizontal: 16,
+      paddingTop: 0,
+      paddingBottom: 4,
+    },
+    chipsScroll: {
+      flexDirection: 'row',
+    },
+    chip: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      marginRight: 8,
+      backgroundColor: Colors.glassBackground,
+      borderWidth: 1,
+      borderColor: Colors.glassBorder,
+    },
+    chipText: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: Colors.textPrimary,
+    },
+    inputContainer: {
+      marginHorizontal: 16,
+      borderRadius: 32,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.15)',
+      backgroundColor: 'rgba(15,20,30,0.15)',
+      overflow: 'hidden',
+    },
+    inputContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    inputIconButton: {
+      width: 32,
+      height: 32,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    input: {
+      flex: 1,
+      maxHeight: 100,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      fontSize: 16,
+      color: Colors.textPrimary,
+      marginHorizontal: 4,
+    },
+    inputActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    sendButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: Colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    sendButtonDisabled: {
+      backgroundColor: Colors.backgroundDarkTertiary,
+    },
+    recordingButton: {
+      backgroundColor: `rgba(255, 59, 48, 0.1)`,
+    },
+    recordingIndicator: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginRight: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      backgroundColor: `rgba(255, 59, 48, 0.1)`,
+    },
+    recordingDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: Colors.error || '#FF3B30',
+      marginRight: 6,
+    },
+    recordingTime: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: Colors.error || '#FF3B30',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: Colors.glassBackground,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: 20,
+      paddingBottom: 40,
+      borderWidth: 1,
+      borderColor: Colors.glassBorder,
+      borderBottomWidth: 0,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+      elevation: 5,
+    },
+    modalOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      borderRadius: 12,
+      backgroundColor: Colors.glassBackgroundLight,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: Colors.glassBorder,
+    },
+    modalOptionText: {
+      fontSize: 16,
+      fontWeight: '500',
+      color: Colors.textPrimary,
+      marginLeft: 12,
+    },
+    modalOptionDisabled: {
+      opacity: 0.5,
+    },
+    modalOptionTextDisabled: {
+      color: Colors.textSecondary,
+    },
+    modalCancel: {
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      marginTop: 8,
+      marginBottom: 0,
+    },
+    modalCancelText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: Colors.error || '#FF3B30',
+      textAlign: 'center',
+      width: '100%',
+    },
+    messageImage: {
+      width: '100%',
+      height: 200,
+      borderRadius: 12,
+      marginBottom: 8,
+    },
+    attachmentContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 12,
+      borderRadius: 8,
+      backgroundColor: 'rgba(0, 191, 255, 0.1)',
+      marginBottom: 8,
+    },
+    attachmentContainerUser: {
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    attachmentText: {
+      fontSize: 14,
+      fontWeight: '500',
+      marginLeft: 8,
+      flex: 1,
+    },
+    messageTextWithAttachment: {
+      marginTop: 8,
+    },
+    imagePreviewContainer: {
+      paddingHorizontal: 16,
+      paddingBottom: 8,
+    },
+    imagePreview: {
+      borderRadius: 12,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: Colors.glassBorder,
+      position: 'relative',
+    },
+    imagePreviewImage: {
+      width: '100%',
+      height: 200,
+    },
+    imagePreviewCancel: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      borderRadius: 20,
+      padding: 4,
+    },
+    documentPreviewContainer: {
+      paddingHorizontal: 16,
+      paddingBottom: 8,
+    },
+    documentPreview: {
+      borderRadius: 12,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: Colors.glassBorder,
+      position: 'relative',
+      padding: 16,
+    },
+    documentPreviewContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingRight: 40,
+    },
+    documentPreviewName: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: Colors.textPrimary,
+      marginLeft: 12,
+      flex: 1,
+    },
+    documentPreviewCancel: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      borderRadius: 20,
+      padding: 4,
+    },
+    thinkingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 8,
+    },
+    thinkingIndicator: {
+      marginRight: 8,
+    },
+    thinkingText: {
+      fontSize: 14,
+      fontStyle: 'italic',
+      color: Colors.textSecondary,
+    },
+    typingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 8,
+    },
+    typingDots: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginRight: 8,
+    },
+    typingDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: Colors.ionBlue || Colors.primary,
+      marginRight: 4,
+      opacity: 0.6,
+    },
+    typingText: {
+      fontSize: 14,
+      fontStyle: 'italic',
+      color: Colors.textSecondary,
+    },
+    messageTextTyping: {
+      // Estilo adicional quando está digitando
+    },
+    cursor: {
+      color: Colors.primary,
+      opacity: 0.8,
+      fontWeight: 'bold',
+    },
   });
 }

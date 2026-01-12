@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet } from 'react-native';
+import { View, Animated, StyleSheet, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname } from 'expo-router';
@@ -13,11 +13,11 @@ const tabRoutes = ['shopping', 'finances', 'chat', 'calendar', 'profile'];
 
 export function TabBarIndicator({ tabCount, tabBarWidth }: TabBarIndicatorProps) {
   const pathname = usePathname();
-  
+
   // ===== DIMENSÕES DA BOLHA =====
   const bubbleWidth = 65;
   const bubbleHeight = 50;
-  
+
   // ===== POSIÇÃO DA BOLHA - VALORES RELATIVOS À LARGURA DA NAVBAR =====
   // Estes valores são em porcentagem (0-100%) da largura total da navbar
   // A posição é calculada como: (valor / 100) * larguraDaNavbar
@@ -37,16 +37,28 @@ export function TabBarIndicator({ tabCount, tabBarWidth }: TabBarIndicatorProps)
     79.5,    // profile (índice 4) - posição relativa à largura da navbar
   ];
   // ================================================================
-  
-  // Calcular posição inicial baseada na porcentagem
+
+  // Helper para calcular posição X
+  const getTargetX = (index: number) => {
+    if (Platform.OS === 'android') {
+      // No Android, calculamos matematicamente o centro do slot
+      const slotWidth = tabBarWidth / tabCount;
+      const centerX = slotWidth * index + slotWidth / 2;
+      // Subtraímos metade da largura da bolha para centralizar
+      return centerX - (bubbleWidth / 2);
+    }
+    // No iOS, mantemos o comportamento original baseado em porcentagem
+    return (positionPercentFromLeft[index] / 100) * tabBarWidth;
+  };
+
+  // Calcular posição inicial
   const getInitialX = () => {
     const route = pathname.split('/').pop() || '';
     const index = tabRoutes.indexOf(route);
     const activeIndex = index >= 0 ? index : 0;
-    // Posição = porcentagem * largura da navbar
-    return (positionPercentFromLeft[activeIndex] / 100) * tabBarWidth;
+    return getTargetX(activeIndex);
   };
-  
+
   const translateX = useRef(new Animated.Value(getInitialX())).current;
   const scaleY = useRef(new Animated.Value(1)).current;
 
@@ -55,9 +67,9 @@ export function TabBarIndicator({ tabCount, tabBarWidth }: TabBarIndicatorProps)
     const route = pathname.split('/').pop() || '';
     const index = tabRoutes.indexOf(route);
     const activeIndex = index >= 0 ? index : 0;
-    
-    // Calcular posição baseada na porcentagem da parede esquerda
-    const targetX = (positionPercentFromLeft[activeIndex] / 100) * tabBarWidth;
+
+    // Calcular posição
+    const targetX = getTargetX(activeIndex);
 
     console.log('TabBarIndicator - activeIndex:', activeIndex, 'tabBarWidth:', tabBarWidth, 'percent:', positionPercentFromLeft[activeIndex], 'targetX:', targetX);
 

@@ -1,5 +1,13 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+
+let Notifications: any;
+if (Platform.OS !== 'android') {
+  try {
+    Notifications = require('expo-notifications');
+  } catch (error) {
+    console.warn('Erro ao carregar expo-notifications:', error);
+  }
+}
 
 const WEBHOOK_URL = 'https://n8n.goaether.xyz/webhook/a90d5230-303e-4814-aa31-1210573f6eeb';
 
@@ -58,16 +66,18 @@ const scheduleWebhookCall = (reminder: ReminderNotification, diffMs: number) => 
 
 export const ensureNotificationPermissions = async (): Promise<boolean> => {
   try {
-    const settings = await Notifications.getPermissionsAsync();
-    if (settings.granted) {
-      await configureAndroidChannel();
-      return true;
-    }
+    if (Notifications) {
+      const settings = await Notifications.getPermissionsAsync();
+      if (settings.granted) {
+        await configureAndroidChannel();
+        return true;
+      }
 
-    const request = await Notifications.requestPermissionsAsync();
-    if (request.granted) {
-      await configureAndroidChannel();
-      return true;
+      const request = await Notifications.requestPermissionsAsync();
+      if (request.granted) {
+        await configureAndroidChannel();
+        return true;
+      }
     }
 
     return false;
@@ -83,12 +93,14 @@ const configureAndroidChannel = async () => {
   }
 
   try {
-    await Notifications.setNotificationChannelAsync('reminders', {
-      name: 'Lembretes',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#1B5BFF',
-    });
+    if (Notifications) {
+      await Notifications.setNotificationChannelAsync('reminders', {
+        name: 'Lembretes',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#1B5BFF',
+      });
+    }
   } catch (error) {
     console.warn('Erro ao configurar canal de notificações no Android:', error);
   }
@@ -124,7 +136,9 @@ export async function syncReminderNotifications(
   const webhookEnabled = options?.webhookEnabled ?? true;
 
   try {
-    await Notifications.cancelAllScheduledNotificationsAsync();
+    if (Notifications) {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+    }
     resetWebhookSchedules();
 
     if (!pushEnabled && !webhookEnabled) {
@@ -143,7 +157,7 @@ export async function syncReminderNotifications(
 
       const trigger = new Date(triggerTime);
 
-      if (pushEnabled) {
+      if (pushEnabled && Notifications) {
         await Notifications.scheduleNotificationAsync({
           content: {
             title: reminder.title,
@@ -166,10 +180,12 @@ export async function syncReminderNotifications(
 
 export const cancelReminderNotification = async (reminderId: string) => {
   try {
-    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-    const notification = scheduled.find((item) => item.content.data?.reminderId === reminderId);
-    if (notification) {
-      await Notifications.cancelScheduledNotificationAsync(notification.identifier);
+    if (Notifications) {
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      const notification = scheduled.find((item: any) => item.content.data?.reminderId === reminderId);
+      if (notification) {
+        await Notifications.cancelScheduledNotificationAsync(notification.identifier);
+      }
     }
     clearScheduledWebhook(reminderId);
   } catch (error) {
