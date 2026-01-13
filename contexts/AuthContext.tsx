@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { 
+import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   User as FirebaseUser,
@@ -42,168 +42,101 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Observar mudanças no estado de autenticação do Firebase
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log('onAuthStateChanged acionado:', firebaseUser ? `usuário autenticado (${firebaseUser.uid})` : 'usuário não autenticado');
-      
+
       if (firebaseUser) {
         // Usuário autenticado no Firebase
         console.log('Usuário autenticado, verificando perfil...', firebaseUser.uid);
-        
+
         // Buscar perfil do usuário no Firestore
+        let userProfile: any = null;
         try {
-          // Tentar buscar o perfil, com retry se necessário
-          let userProfile: any = null;
-          
-          try {
-            userProfile = await firestoreService.getUserProfile(firebaseUser.uid);
-          } catch (firestoreError) {
-            console.warn('Erro ao buscar perfil no Firestore (primeira tentativa):', firestoreError);
-          }
-          
+          userProfile = await firestoreService.getUserProfile(firebaseUser.uid);
+
           // Se não encontrou, aguardar um pouco e tentar novamente (pode estar sendo criado)
           if (!userProfile) {
             console.log('Perfil não encontrado, aguardando 1 segundo e tentando novamente...');
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
             try {
               userProfile = await firestoreService.getUserProfile(firebaseUser.uid);
-            } catch (firestoreError) {
-              console.warn('Erro ao buscar perfil no Firestore (segunda tentativa):', firestoreError);
+            } catch (retryError) {
+              console.warn('Erro ao buscar perfil no Firestore (retry):', retryError);
             }
           }
-          
-          // Se não tem perfil ou não completou onboarding, mostrar onboarding
-          // Verificar explicitamente se hasCompletedOnboarding é true
-          const needsOnboarding = !userProfile || userProfile.hasCompletedOnboarding !== true;
-          
-          console.log('Verificação de onboarding:', {
-            hasProfile: !!userProfile,
-            hasCompletedOnboarding: userProfile?.hasCompletedOnboarding,
-            needsOnboarding,
-          });
-          
-          if (needsOnboarding) {
-            console.log('Usuário precisa de onboarding');
-            setNeedsOnboarding(true);
-            const userData: User = {
-              phoneNumber: '', // Será coletado no onboarding
-              firebaseUser,
-            };
-            setUser(userData);
-            setLoading(false);
-            return;
+        } catch (firestoreError) {
+          console.warn('Erro ao buscar perfil no Firestore:', firestoreError);
+        }
+
+        const hasProfile = !!userProfile;
+        const hasCompletedOnboarding = userProfile?.hasCompletedOnboarding === true;
+        const savedPhone = userProfile?.phoneNumber;
+
+        console.log('Status do perfil:', { hasProfile, hasCompletedOnboarding, savedPhone });
+
+        // 1. Tentar buscar usuário no Supabase pelo EMAIL (Prioridade)
+        let usuario: Usuario | null = null;
+        if (firebaseUser.email) {
+          console.log('Buscando usuário no Supabase com email:', firebaseUser.email);
+          usuario = await usuariosService.getByEmail(firebaseUser.email);
+        }
+
+        // 2. Se não achou pelo email, e tem telefone salvo, tentar pelo telefone (Legado/Fallback)
+        if (!usuario && savedPhone) {
+          console.log('Usuário não encontrado por email, tentando por telefone:', savedPhone);
+          usuario = await usuariosService.getByCelular(savedPhone);
+        }
+
+        // Verificar o resultado da busca
+        if (usuario && usuario.status === 'ativo') {
+          console.log('Usuário encontrado e ativo:', usuario.id);
+
+          // Se encontrou usuário, mas não tinha telefone no Firestore ou era diferente, atualizar Firestore
+          if (usuario.celular && usuario.celular !== savedPhone) {
+            console.log('Atualizando telefone no Firestore para coincidir com Supabase');
+            await firestoreService.updatePhoneNumber(firebaseUser.uid, usuario.celular);
           }
 
-          // Se tem perfil completo, buscar dados do Supabase usando o telefone do Firestore
-          const phoneNumber = userProfile.phoneNumber || '';
-          
-          if (!phoneNumber) {
-            // Se não tem telefone mesmo após onboarding, mostrar novamente
-            setNeedsOnboarding(true);
-            const userData: User = {
-              phoneNumber: '',
-              firebaseUser,
-            };
-            setUser(userData);
-            setLoading(false);
-            return;
+          // Se encontrou usuário mas flag de onboarding estava false, corrigir
+          if (!hasCompletedOnboarding) {
+            console.log('Marcando onboarding como completo pois usuário já existe no Supabase');
+            await firestoreService.completeOnboarding(firebaseUser.uid, usuario.celular);
           }
 
-          console.log('Buscando usuário no Supabase com telefone:', phoneNumber);
-          const usuario = await usuariosService.getByCelular(phoneNumber);
-          console.log('Usuário encontrado no Supabase:', usuario ? `ID: ${usuario.id}, Nome: ${usuario.nome}` : 'não encontrado');
-          
-          if (usuario && usuario.status === 'ativo') {
-            const userData: User = {
-              phoneNumber: usuario.celular,
-              usuarioId: usuario.id,
-              usuario,
-              firebaseUser,
-            };
-            
-            console.log('Definindo usuário autenticado:', {
-              phoneNumber: userData.phoneNumber,
-              usuarioId: userData.usuarioId,
-              nome: userData.usuario?.nome,
-            });
-            
-            await AsyncStorage.setItem('user', JSON.stringify({
-              phoneNumber: userData.phoneNumber,
-              usuarioId: userData.usuarioId,
-            }));
-            setUser(userData);
-            setNeedsOnboarding(false);
-          } else {
-            // Usuário não encontrado no Supabase ou inativo
-            // Tentar buscar pelo email do Firebase como fallback
-            console.log('Usuário não encontrado pelo telefone, tentando buscar pelo email...');
-            const email = firebaseUser.email;
-            if (email) {
-              // Tentar buscar usuário pelo email no Supabase
-              try {
-                const { data: usuariosByEmail } = await supabase
-                  .from('usuarios')
-                  .select('*')
-                  .eq('email', email)
-                  .eq('status', 'ativo')
-                  .limit(1);
-                
-                if (usuariosByEmail && usuariosByEmail.length > 0) {
-                  const usuarioByEmail = usuariosByEmail[0];
-                  console.log('Usuário encontrado pelo email:', `ID: ${usuarioByEmail.id}, Nome: ${usuarioByEmail.nome}`);
-                  
-                  // Atualizar o perfil no Firestore com o telefone correto
-                  if (usuarioByEmail.celular && usuarioByEmail.celular !== phoneNumber) {
-                    await firestoreService.updatePhoneNumber(firebaseUser.uid, usuarioByEmail.celular);
-                  }
-                  
-                  const userData: User = {
-                    phoneNumber: usuarioByEmail.celular,
-                    usuarioId: usuarioByEmail.id,
-                    usuario: usuarioByEmail,
-                    firebaseUser,
-                  };
-                  
-                  await AsyncStorage.setItem('user', JSON.stringify({
-                    phoneNumber: userData.phoneNumber,
-                    usuarioId: userData.usuarioId,
-                  }));
-                  setUser(userData);
-                  setNeedsOnboarding(false);
-                  setLoading(false);
-                  return;
-                }
-              } catch (emailError) {
-                console.warn('Erro ao buscar usuário pelo email:', emailError);
-              }
-            }
-            
-            // Se não encontrou pelo email também, manter autenticado mas sem dados do Supabase
-            console.warn('Usuário não encontrado no Supabase, mantendo autenticado apenas com Firestore');
-            const userData: User = {
-              phoneNumber: phoneNumber,
-              firebaseUser,
-            };
-            setUser(userData);
-            setNeedsOnboarding(false);
-          }
-        } catch (error) {
-          console.error('Error loading user:', error);
-          // Se houver erro, assumir que é novo usuário e mostrar onboarding
-          // Isso garante que o fluxo continue mesmo se houver problemas
           const userData: User = {
-            phoneNumber: '',
+            phoneNumber: usuario.celular,
+            usuarioId: usuario.id,
+            usuario,
             firebaseUser,
           };
+
+          await AsyncStorage.setItem('user', JSON.stringify({
+            phoneNumber: userData.phoneNumber,
+            usuarioId: userData.usuarioId,
+          }));
+
           setUser(userData);
-          setNeedsOnboarding(true); // Mostrar onboarding em caso de erro
-          setLoading(false); // IMPORTANTE: garantir que o loading termine
+          setNeedsOnboarding(false);
+        } else {
+          // Usuário NÃO encontrado no Supabase (ou inativo)
+          console.log('Usuário não encontrado no Supabase ou inativo. Precisa de cadastro/onboarding.');
+
+          const userData: User = {
+            phoneNumber: savedPhone || '',
+            firebaseUser,
+          };
+
+          setUser(userData);
+          // Se não tem usuário no supabase, DEVE ir para onboarding/criação
+          setNeedsOnboarding(true);
         }
+
+        setLoading(false);
       } else {
         // Usuário não autenticado
         await AsyncStorage.removeItem('user');
         setUser(null);
         setNeedsOnboarding(false);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -216,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // O onAuthStateChanged vai lidar com o resto
     } catch (error: any) {
       console.error('Error logging in:', error);
-      
+
       // Tratar erros específicos do Firebase
       if (error.code === 'auth/invalid-email') {
         throw new Error('Email inválido. Verifique o formato.');
@@ -229,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else if (error.code === 'auth/too-many-requests') {
         throw new Error('Muitas tentativas. Tente novamente mais tarde.');
       }
-      
+
       throw new Error(error.message || 'Erro ao fazer login');
     }
   };
@@ -239,9 +172,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Criar conta no Firebase (isso já faz login automático)
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
+
       console.log('✅ Conta criada no Firebase, UID:', userCredential.user.uid);
-      
+
       // Atualizar perfil com nome se fornecido
       if (displayName) {
         try {
@@ -283,14 +216,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userData);
       setNeedsOnboarding(true);
       setLoading(false);
-      
+
       console.log('✅ Estado atualizado manualmente - redirecionando para onboarding');
-      
+
       // O onAuthStateChanged também vai ser acionado, mas já temos o estado correto
-      
+
     } catch (error: any) {
       console.error('Error registering:', error);
-      
+
       // Tratar erros específicos do Firebase
       if (error.code === 'auth/invalid-email') {
         throw new Error('Email inválido. Verifique o formato.');
@@ -299,7 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else if (error.code === 'auth/weak-password') {
         throw new Error('Senha muito fraca. Use pelo menos 6 caracteres.');
       }
-      
+
       throw new Error(error.message || 'Erro ao criar conta');
     }
   };
@@ -311,44 +244,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Usuário não autenticado');
       }
 
-      // Atualizar perfil no Firestore com número de telefone e marcar onboarding como completo
-      const success = await firestoreService.completeOnboarding(
+      const email = user.firebaseUser.email || '';
+      console.log('Completando onboarding para:', email, phoneNumber);
+
+      // 1. Verificar se já existe usuário no Supabase com esse email
+      let usuario = await usuariosService.getByEmail(email);
+
+      // 2. Se não existe por email, verificar por telefone (para evitar duplicação se ele já existia mas mudou email no firebase - raro, mas possível)
+      if (!usuario) {
+        usuario = await usuariosService.getByCelular(phoneNumber);
+      }
+
+      // 3. Se ainda não existe, criar
+      if (!usuario) {
+        console.log('Criando novo usuário no Supabase...');
+        usuario = await usuariosService.create({
+          nome: user.firebaseUser.displayName || 'Usuário',
+          email: email,
+          celular: phoneNumber,
+          status: 'ativo',
+          foto_perfil: user.firebaseUser.photoURL || null,
+        });
+      } else {
+        console.log('Usuário já existe no Supabase, atualizando dados se necessário...');
+        // Opcional: Atualizar celular se mudou?
+        if (usuario.celular !== phoneNumber) {
+          await usuariosService.update(usuario.id, { celular: phoneNumber });
+          usuario.celular = phoneNumber;
+        }
+      }
+
+      if (!usuario) {
+        throw new Error('Falha ao criar/recuperar usuário no sistema.');
+      }
+
+      // Atualizar perfil no Firestore para ficar sincronizado
+      await firestoreService.completeOnboarding(
         user.firebaseUser.uid,
         phoneNumber
       );
 
-      if (!success) {
-        throw new Error('Erro ao salvar dados do usuário');
-      }
+      const userData: User = {
+        phoneNumber: usuario.celular,
+        usuarioId: usuario.id,
+        usuario,
+        firebaseUser: user.firebaseUser,
+      };
 
-      // Criar ou buscar usuário no Supabase
-      let usuario = await usuariosService.getByCelular(phoneNumber);
-      
-      if (!usuario) {
-        // Criar novo usuário no Supabase
-        usuario = await usuariosService.create({
-          nome: 'Usuário',
-          email: user.firebaseUser.email || '',
-          celular: phoneNumber,
-          status: 'ativo',
-        });
-      }
+      await AsyncStorage.setItem('user', JSON.stringify({
+        phoneNumber: userData.phoneNumber,
+        usuarioId: userData.usuarioId,
+      }));
+      setUser(userData);
+      setNeedsOnboarding(false);
 
-      if (usuario) {
-        const userData: User = {
-          phoneNumber: usuario.celular,
-          usuarioId: usuario.id,
-          usuario,
-          firebaseUser: user.firebaseUser,
-        };
-        
-        await AsyncStorage.setItem('user', JSON.stringify({
-          phoneNumber: userData.phoneNumber,
-          usuarioId: userData.usuarioId,
-        }));
-        setUser(userData);
-        setNeedsOnboarding(false);
-      }
     } catch (error) {
       console.error('Error completing onboarding:', error);
       throw error;
@@ -387,15 +336,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
+    <AuthContext.Provider value={{
+      user,
       loading,
       needsOnboarding,
-      login, 
+      login,
       register,
       completeOnboarding,
-      logout, 
-      refreshUser 
+      logout,
+      refreshUser
     }}>
       {children}
     </AuthContext.Provider>

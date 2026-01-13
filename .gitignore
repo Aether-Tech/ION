@@ -12,6 +12,14 @@ npm-debug.*
 web-build/
 .DS_Store
 
+# Build artifacts and keys
+*.keystore
+*.keystore_backup
+*.pem
+*.aab
+*.jar
+*.zip
+
 # Environment variables
 .env
 .env.local

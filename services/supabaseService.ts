@@ -4,6 +4,7 @@ import { supabase, Usuario, Transacao, CategoriaTransacao, ToDo, Lembrete, ItemC
 export const usuariosService = {
   // Buscar usuário por celular
   getByCelular: async (celular: string): Promise<Usuario | null> => {
+    if (!celular) return null;
     try {
       const { data, error } = await supabase
         .from('usuarios')
@@ -15,15 +16,36 @@ export const usuariosService = {
       // Se não encontrou (erro PGRST116 = not found), retornar null
       if (error) {
         if (error.code === 'PGRST116') {
-          // Usuário não encontrado
           return null;
         }
-        console.error('Error fetching user:', error);
+        console.error('Error fetching user by phone:', error);
         return null;
       }
       return data;
     } catch (error) {
-      console.error('Exception fetching user:', error);
+      console.error('Exception fetching user by phone:', error);
+      return null;
+    }
+  },
+
+  // Buscar usuário por email
+  getByEmail: async (email: string): Promise<Usuario | null> => {
+    if (!email) return null;
+    try {
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('email', email)
+        .neq('status', 'excluido')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching user by email:', error);
+        return null;
+      }
+      return data;
+    } catch (error) {
+      console.error('Exception fetching user by email:', error);
       return null;
     }
   },
