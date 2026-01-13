@@ -8,15 +8,15 @@ export default function Index() {
   const { user, loading, needsOnboarding } = useAuth();
 
   useEffect(() => {
-    console.log('Index - Estado:', { 
-      hasUser: !!user, 
-      loading, 
+    console.log('Index - Estado:', {
+      hasUser: !!user,
+      loading,
       needsOnboarding,
       userUid: user?.firebaseUser?.uid,
       hasUsuario: !!user?.usuario,
       usuarioNome: user?.usuario?.nome,
     });
-    
+
     if (!loading) {
       if (user) {
         // Se o usuário precisa de onboarding, redirecionar para onboarding
@@ -31,8 +31,8 @@ export default function Index() {
           router.replace('/(tabs)/chat');
         }
       } else {
-        console.log('Redirecionando para login - usuário não autenticado');
-        router.replace('/login');
+        console.log('Redirecionando para welcome - usuário não autenticado');
+        router.replace('/welcome');
       }
     }
   }, [user, loading, needsOnboarding, router]);

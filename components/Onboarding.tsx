@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { HugeIcon } from './HugeIcon';
@@ -64,6 +65,7 @@ const slides: OnboardingSlide[] = [
 ];
 
 export function Onboarding({ onComplete, loading = false }: OnboardingProps) {
+  const router = useRouter();
   const Colors = useAppColors();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -119,6 +121,19 @@ export function Onboarding({ onComplete, loading = false }: OnboardingProps) {
         colors={Colors.backgroundGradient as any}
         style={StyleSheet.absoluteFill}
       />
+
+      {/* Header com botão de Entrar/Sair */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.headerButton} onPress={() => {
+          // Se estivermos em um contexto onde router.replace existe (dentro de app/), podemos navegar
+          // Caso contrário, precisamos passar uma prop onLogin ou similar
+          // Como Onboarding é usado em app/onboarding.tsx que tem router, vamos assumir que o pai lida ou usamos router aqui se importarmos
+          import('expo-router').then(({ router }) => router.replace('/login'));
+        }}>
+          <Text style={styles.headerButtonText}>Já tenho conta</Text>
+          <HugeIcon name="arrow-right-01" size={16} color={Colors.primary} strokeWidth={2} />
+        </TouchableOpacity>
+      </View>
 
       {/* Indicadores de slide */}
       <View style={styles.indicators}>
@@ -238,6 +253,34 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
   return StyleSheet.create({
     container: {
       flex: 1,
+    },
+    header: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      paddingHorizontal: 24,
+      paddingTop: 60,
+      zIndex: 100,
+      elevation: 10,
+    },
+    headerButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      borderRadius: 20,
+      backgroundColor: Colors.glassBackground,
+      borderWidth: 1,
+      borderColor: Colors.glassBorder,
+    },
+    headerButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: Colors.primary,
     },
     indicators: {
       flexDirection: 'row',
