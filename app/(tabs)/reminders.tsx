@@ -871,13 +871,13 @@ Responda APENAS com o número da hora (0-23), sem texto adicional, sem explicaç
 
         {/* ION Suggestion */}
         {showIONMessage && oldTaskSuggestion && !isGeneratingReminder && (
-          <View style={[styles.insightContainer, { marginBottom: 80 }]}>
+          <View style={[styles.insightContainer, { marginBottom: 130 }]}>\n
             <View style={styles.insightAvatar}>
               <IONLogo size={40} />
             </View>
             <View style={styles.insightContent}>
               <Text style={styles.insightLabel}>ION</Text>
-              <BlurView intensity={20} style={styles.insightBubble}>
+              <View style={styles.insightBubble}>
                 <Text style={styles.insightText}>
                   {messageType === 'old_task' 
                     ? `Percebi que '${oldTaskSuggestion.title}' está na sua lista há ${differenceInCalendarDays(currentDate, oldTaskSuggestion.createdAt)} dias. Posso criar um lembrete inteligente para você em um horário que faça sentido para essa tarefa?`
@@ -895,30 +895,30 @@ Responda APENAS com o número da hora (0-23), sem texto adicional, sem explicaç
                     style={styles.insightActionButtonSecondary}
                     onPress={handleIONNo}
                   >
-                    <Text style={styles.insightActionTextSecondary}>Não</Text>
+                  <Text style={styles.insightActionTextSecondary}>Não</Text>
                   </TouchableOpacity>
                 </View>
-              </BlurView>
+              </View>
             </View>
           </View>
         )}
 
         {/* Loading indicator while generating reminder */}
         {isGeneratingReminder && !showTimePicker && (
-          <View style={[styles.insightContainer, { marginBottom: 80 }]}>
+          <View style={[styles.insightContainer, { marginBottom: 130 }]}>\n
             <View style={styles.insightAvatar}>
               <IONLogo size={40} />
             </View>
             <View style={styles.insightContent}>
               <Text style={styles.insightLabel}>ION</Text>
-              <BlurView intensity={20} style={styles.insightBubble}>
+              <View style={styles.insightBubble}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <ActivityIndicator size="small" color={Colors.textInverse} />
                   <Text style={styles.insightText}>
                     Estou escolhendo o melhor horário para você...
                   </Text>
                 </View>
-              </BlurView>
+              </View>
             </View>
           </View>
         )}
