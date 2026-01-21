@@ -18,6 +18,7 @@ web-build/
 *.pem
 *.aab
 *.jar
+!gradle-wrapper.jar
 *.zip
 
 # Environment variables
