@@ -27,7 +27,7 @@ interface OnboardingSlide {
 }
 
 interface OnboardingProps {
-  onComplete: (phoneNumber: string) => Promise<void>;
+  onComplete: (phoneNumber?: string) => Promise<void>;
   loading?: boolean;
 }
 
@@ -73,7 +73,7 @@ export function Onboarding({ onComplete, loading = false }: OnboardingProps) {
 
   const handleNext = () => {
     // slides.length é o índice do slide final (telefone)
-    if (currentSlide < slides.length) {
+    if (currentSlide < slides.length - 1) {
       const nextSlide = currentSlide + 1;
       setCurrentSlide(nextSlide);
       scrollViewRef.current?.scrollTo({
@@ -95,22 +95,7 @@ export function Onboarding({ onComplete, loading = false }: OnboardingProps) {
   };
 
   const handleComplete = async () => {
-    if (!phoneNumber.trim()) {
-      Alert.alert('Erro', 'Por favor, insira seu número de telefone');
-      return;
-    }
-
-    // Validar formato básico
-    const digitsOnly = phoneNumber.replace(/\D/g, '');
-    const localNumber = digitsOnly.startsWith('55') ? digitsOnly.slice(2) : digitsOnly;
-
-    if (localNumber.length < 10) {
-      Alert.alert('Erro', 'Por favor, insira um número de telefone válido');
-      return;
-    }
-
-    const normalizedPhone = digitsOnly.startsWith('55') ? digitsOnly : `55${digitsOnly}`;
-    await onComplete(normalizedPhone);
+    await onComplete(undefined);
   };
 
   const styles = getStyles(Colors);
@@ -146,13 +131,8 @@ export function Onboarding({ onComplete, loading = false }: OnboardingProps) {
             ]}
           />
         ))}
-        {/* Indicador para o slide final (telefone) */}
-        <View
-          style={[
-            styles.indicator,
-            currentSlide === slides.length && styles.indicatorActive,
-          ]}
-        />
+        {/* Indicador para o slide final (telefone) - REMOVIDO */}
+
       </View>
 
       {/* Slides */}
@@ -176,37 +156,8 @@ export function Onboarding({ onComplete, loading = false }: OnboardingProps) {
           </View>
         ))}
 
-        {/* Último slide com input de telefone */}
-        <View style={styles.slide}>
-          <View style={styles.slideContent}>
-            <View style={[styles.iconContainer, { backgroundColor: `${Colors.ionBlue}20` }]}>
-              <IONLogo size={64} />
-            </View>
-            <Text style={styles.slideTitle}>Tudo em um lugar só</Text>
-            <Text style={styles.slideDescription}>
-              Insira seu telefone para começar
-            </Text>
+        {/* Último slide com input de telefone - REMOVIDO */}
 
-            <View style={styles.phoneInputContainer}>
-              <BlurView intensity={20} style={styles.phoneInput}>
-                <HugeIcon name="call-outline" size={24} color={Colors.primary} strokeWidth={1.5} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.phoneInputField}
-                  placeholder="Ex: 5527999999999"
-                  placeholderTextColor={Colors.textSecondary}
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  keyboardType="phone-pad"
-                  autoComplete="tel"
-                  textContentType="telephoneNumber"
-                />
-              </BlurView>
-              <Text style={styles.phoneHint}>
-                Digite seu número com código do país (ex: 5527999999999)
-              </Text>
-            </View>
-          </View>
-        </View>
       </ScrollView>
 
       {/* Botões de navegação */}
@@ -226,7 +177,7 @@ export function Onboarding({ onComplete, loading = false }: OnboardingProps) {
 
         <TouchableOpacity
           style={[styles.navButton, styles.navButtonPrimary]}
-          onPress={currentSlide === slides.length ? handleComplete : handleNext}
+          onPress={currentSlide === slides.length - 1 ? handleComplete : handleNext}
           disabled={loading}
         >
           {loading ? (
@@ -234,9 +185,9 @@ export function Onboarding({ onComplete, loading = false }: OnboardingProps) {
           ) : (
             <>
               <Text style={[styles.navButtonText, styles.navButtonTextPrimary]}>
-                {currentSlide === slides.length ? 'Começar' : 'Próximo'}
+                {currentSlide === slides.length - 1 ? 'Começar' : 'Próximo'}
               </Text>
-              {currentSlide === slides.length ? (
+              {currentSlide === slides.length - 1 ? (
                 <HugeIcon name="checkmark" size={24} color={Colors.textInverse} strokeWidth={1.5} />
               ) : (
                 <HugeIcon name="chevron-forward" size={24} color={Colors.textInverse} strokeWidth={1.5} />

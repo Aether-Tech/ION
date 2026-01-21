@@ -8,7 +8,7 @@ interface IONLogoProps {
 }
 
 // Logo da ION usada como "foto de perfil" padrão em avisos, conversas, etc.
-const logoImage = require('../logo/Logo.png') as ImageSourcePropType;
+const logoImage = require('../assets/IONlogoNova.png') as ImageSourcePropType;
 
 export function IONLogo({ size = 40, showText = false, variant = 'icon' }: IONLogoProps) {
   const initials = variant === 'full' ? 'ION' : 'I';

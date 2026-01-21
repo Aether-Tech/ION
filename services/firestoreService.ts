@@ -4,7 +4,7 @@ import { User as FirebaseUser } from 'firebase/auth';
 
 export interface UserProfile {
   uid: string;
-  phoneNumber: string;
+  phoneNumber?: string | null;
   displayName?: string;
   email?: string;
   photoURL?: string;
@@ -18,10 +18,11 @@ export const firestoreService = {
   createOrUpdateUserProfile: async (
     firebaseUser: FirebaseUser,
     additionalData?: {
-      phoneNumber?: string;
+      phoneNumber?: string | null;
       displayName?: string;
       email?: string;
       photoURL?: string;
+      hasCompletedOnboarding?: boolean;
     }
   ): Promise<UserProfile | null> => {
     try {
@@ -37,12 +38,16 @@ export const firestoreService = {
         updatedAt: serverTimestamp(),
       };
 
+      if (additionalData?.hasCompletedOnboarding !== undefined) {
+        userData.hasCompletedOnboarding = additionalData.hasCompletedOnboarding;
+      }
+
       if (!userSnap.exists()) {
         // Criar novo perfil
         await setDoc(userRef, {
           ...userData,
           createdAt: serverTimestamp(),
-          hasCompletedOnboarding: false,
+          hasCompletedOnboarding: additionalData?.hasCompletedOnboarding !== undefined ? additionalData.hasCompletedOnboarding : false,
         });
       } else {
         // Atualizar perfil existente
@@ -75,7 +80,7 @@ export const firestoreService = {
   },
 
   // Atualizar número de telefone
-  updatePhoneNumber: async (uid: string, phoneNumber: string): Promise<boolean> => {
+  updatePhoneNumber: async (uid: string, phoneNumber: string | null): Promise<boolean> => {
     try {
       const userRef = doc(db, 'users', uid);
       await updateDoc(userRef, {
@@ -90,7 +95,7 @@ export const firestoreService = {
   },
 
   // Marcar onboarding como completo
-  completeOnboarding: async (uid: string, phoneNumber: string): Promise<boolean> => {
+  completeOnboarding: async (uid: string, phoneNumber: string | null): Promise<boolean> => {
     try {
       const userRef = doc(db, 'users', uid);
       await updateDoc(userRef, {

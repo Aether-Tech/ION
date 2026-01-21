@@ -22,7 +22,7 @@ export interface Usuario {
   created_at: string;
   nome: string;
   email: string;
-  celular: string;
+  celular: string | null;
   status: 'ativo' | 'inativo' | 'bloqueado' | 'excluido';
   foto_perfil?: string | null;
 }

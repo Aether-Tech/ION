@@ -7,7 +7,14 @@ const API_BASE_URL = 'https://ion.goaether.com.br/api';
 
 // API KEY da OpenAI - Configure via variável de ambiente EXPO_PUBLIC_API_KEY
 // Esta é a chave da OpenAI que será usada para o chat com GPT 5 nano
-const API_KEY = process.env.EXPO_PUBLIC_API_KEY || '';
+// Remove whitespace and potential non-visible characters/newlines
+const API_KEY = (process.env.EXPO_PUBLIC_API_KEY || '').replace(/[\s\n\r\t\uFEFF\xA0]+/g, '');
+
+console.log('OpenAI API Configuration:', {
+  hasKey: !!API_KEY,
+  keyLength: API_KEY ? API_KEY.length : 0,
+  keyPrefix: API_KEY ? `${API_KEY.substring(0, 15)}...${API_KEY.substring(API_KEY.length - 5)}` : 'N/A'
+});
 
 interface ApiResponse<T> {
   success: boolean;
@@ -39,7 +46,7 @@ async function request<T>(
     if (options.body) {
       console.log(`[API Request Body]`, JSON.parse(options.body as string));
     }
-    
+
     const response = await fetch(url, {
       headers,
       ...options,
@@ -55,7 +62,7 @@ async function request<T>(
         // Se não conseguir ler JSON, usar status
         errorMessage = `Erro ${response.status}: ${response.statusText || 'Endpoint não encontrado'}`;
       }
-      
+
       console.error(`[API Error] ${response.status} - ${errorMessage}`);
       throw new Error(errorMessage);
     }
@@ -65,7 +72,7 @@ async function request<T>(
   } catch (error) {
     console.error('[API Error]', error);
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-    
+
     // Melhorar mensagens de erro comuns
     let userFriendlyMessage = errorMessage;
     if (errorMessage.includes('404')) {
@@ -77,7 +84,7 @@ async function request<T>(
     } else if (errorMessage.includes('Network') || errorMessage.includes('fetch')) {
       userFriendlyMessage = `Erro de conexão. Verifique sua internet.`;
     }
-    
+
     return {
       success: false,
       error: userFriendlyMessage,
@@ -112,7 +119,7 @@ const parseDateFromPortuguese = (dateString: string | undefined): Date => {
 
   // Processar datas relativas comuns
   let targetDate = new Date(now);
-  
+
   if (lowerDate.includes('amanhã') || lowerDate.includes('amanha') || lowerDate.includes('tomorrow')) {
     targetDate.setDate(targetDate.getDate() + 1);
   } else if (lowerDate.includes('ontem') || lowerDate.includes('yesterday')) {
@@ -136,7 +143,7 @@ const parseDateFromPortuguese = (dateString: string | undefined): Date => {
     // Tentar extrair horário (ex: "14h", "15:30", "8h30")
     const hourMatch = lowerDate.match(/(\d{1,2})h/);
     const timeMatch = lowerDate.match(/(\d{1,2}):(\d{2})/);
-    
+
     if (hourMatch) {
       const hour = parseInt(hourMatch[1], 10);
       if (hour >= 0 && hour <= 23) {
@@ -150,9 +157,9 @@ const parseDateFromPortuguese = (dateString: string | undefined): Date => {
       }
     } else {
       // Se não há horário específico, usar horário atual mas manter a data
-      if (!lowerDate.includes('hoje') && !lowerDate.includes('today') && 
-          !lowerDate.includes('amanhã') && !lowerDate.includes('amanha') && 
-          !lowerDate.includes('ontem') && !lowerDate.includes('yesterday')) {
+      if (!lowerDate.includes('hoje') && !lowerDate.includes('today') &&
+        !lowerDate.includes('amanhã') && !lowerDate.includes('amanha') &&
+        !lowerDate.includes('ontem') && !lowerDate.includes('yesterday')) {
         // Se não é uma data relativa e não tem horário, manter horário atual
         targetDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
       }
@@ -214,7 +221,7 @@ const executeFunctionCall = async (
     switch (functionName) {
       case 'create_transaction': {
         const { description, amount, type, category, date } = args;
-        
+
         if (!description || !amount) {
           return 'Erro: Descrição e valor são obrigatórios para criar uma transação.';
         }
@@ -229,9 +236,9 @@ const executeFunctionCall = async (
         if (!transactionType) {
           // Tentar inferir pelo contexto comum
           const descLower = description.toLowerCase();
-          if (descLower.includes('salário') || descLower.includes('salario') || 
-              descLower.includes('receita') || descLower.includes('ganho') ||
-              descLower.includes('pagamento') || descLower.includes('entrada')) {
+          if (descLower.includes('salário') || descLower.includes('salario') ||
+            descLower.includes('receita') || descLower.includes('ganho') ||
+            descLower.includes('pagamento') || descLower.includes('entrada')) {
             transactionType = 'entrada';
           } else {
             transactionType = 'saida'; // Padrão para despesas
@@ -242,16 +249,16 @@ const executeFunctionCall = async (
         let categoriaNome = category;
         if (!categoriaNome) {
           const descLower = description.toLowerCase();
-          if (descLower.includes('almoço') || descLower.includes('almoco') || 
-              descLower.includes('jantar') || descLower.includes('lanche') ||
-              descLower.includes('comida') || descLower.includes('restaurante')) {
+          if (descLower.includes('almoço') || descLower.includes('almoco') ||
+            descLower.includes('jantar') || descLower.includes('lanche') ||
+            descLower.includes('comida') || descLower.includes('restaurante')) {
             categoriaNome = 'Alimentação';
           } else if (descLower.includes('transporte') || descLower.includes('uber') ||
-                     descLower.includes('táxi') || descLower.includes('taxi') ||
-                     descLower.includes('gasolina') || descLower.includes('combustível')) {
+            descLower.includes('táxi') || descLower.includes('taxi') ||
+            descLower.includes('gasolina') || descLower.includes('combustível')) {
             categoriaNome = 'Transporte';
           } else if (descLower.includes('salário') || descLower.includes('salario') ||
-                     descLower.includes('trabalho') || descLower.includes('freelance')) {
+            descLower.includes('trabalho') || descLower.includes('freelance')) {
             categoriaNome = 'Trabalho';
           } else {
             categoriaNome = 'Outros';
@@ -304,7 +311,7 @@ const executeFunctionCall = async (
       case 'list_transactions': {
         const { limit = 10, type, category } = args;
         const transactions = await transacoesService.getByUsuarioId(userId);
-        
+
         let filtered = transactions;
         if (type && (type === 'income' || type === 'expense')) {
           filtered = filtered.filter(
@@ -337,7 +344,7 @@ const executeFunctionCall = async (
 
       case 'create_task': {
         const { title, category, date } = args;
-        
+
         if (!title) {
           return 'Erro: O título da tarefa é obrigatório.';
         }
@@ -368,7 +375,7 @@ const executeFunctionCall = async (
       case 'list_tasks': {
         const { status, limit = 10 } = args;
         let tasks;
-        
+
         if (status) {
           tasks = await toDoService.getByStatus(userId, status);
         } else {
@@ -393,7 +400,7 @@ const executeFunctionCall = async (
 
       case 'create_reminder': {
         const { title, date, recurrence } = args;
-        
+
         if (!title) {
           return 'Erro: O título do lembrete é obrigatório.';
         }
@@ -522,7 +529,7 @@ const executeFunctionCall = async (
 
       case 'create_shopping_item': {
         const { item, category, list, selection, selecao } = args;
-        
+
         if (!item) {
           return 'Erro: O nome do item é obrigatório.';
         }
@@ -580,7 +587,7 @@ const executeFunctionCall = async (
       case 'list_shopping_items': {
         const { status, limit = 20 } = args;
         let items;
-        
+
         if (status) {
           items = await listaComprasService.getByStatus(userId, status);
         } else {
@@ -605,7 +612,7 @@ const executeFunctionCall = async (
 
       case 'create_savings_box': {
         const { name, goal, deadline } = args;
-        
+
         if (!name) {
           return 'Erro: O nome da caixinha é obrigatório.';
         }
@@ -642,7 +649,7 @@ const executeFunctionCall = async (
 
       case 'add_deposit': {
         const { box_id, amount } = args;
-        
+
         if (!box_id) {
           return 'Erro: O ID da caixinha é obrigatório.';
         }
@@ -714,7 +721,7 @@ const executeFunctionCall = async (
 // Serviços de chat - usando OpenAI diretamente (NÃO usa API_BASE_URL)
 export const chatService = {
   sendMessage: async (
-    phoneNumber: string, 
+    phoneNumber: string,
     message: string,
     onStream?: (chunk: string, fullText: string) => void,
     onThinking?: () => void,
@@ -728,7 +735,7 @@ export const chatService = {
         error: 'API KEY da OpenAI não configurada. Configure EXPO_PUBLIC_API_KEY no arquivo .env com sua chave da OpenAI',
       };
     }
-    
+
     try {
       // Mostrar estado de "pensando"
       if (onThinking) {
@@ -1058,24 +1065,28 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
             max_tokens: 1000,
           }),
         });
-        
+
         if (!response.ok) {
           let errorMessage = `Erro ${response.status}`;
           try {
             const errorData = await response.json();
+
+            // LOG DETALHADO DO ERRO DA OPENAI
+            console.error('[OpenAI API Error Details]', JSON.stringify(errorData, null, 2));
+
             errorMessage = errorData.error?.message || errorData.error?.code || errorMessage;
-            
+
             if (response.status === 401) {
-              errorMessage = 'API KEY inválida. Verifique sua chave no arquivo .env';
+              errorMessage = 'API KEY inválida ou expirada. Verifique se sua chave da OpenAI está correta e ativa.';
             } else if (response.status === 429) {
-              errorMessage = 'Limite de requisições excedido. Tente novamente mais tarde.';
+              errorMessage = 'Limite de requisições excedido. Verifique seus créditos na OpenAI.';
             } else if (response.status === 500) {
               errorMessage = 'Erro no servidor da OpenAI. Tente novamente.';
             }
           } catch (e) {
             errorMessage = `Erro ${response.status}: ${response.statusText || 'Erro desconhecido'}`;
           }
-          
+
           return { success: false, error: errorMessage };
         }
 
@@ -1098,11 +1109,11 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
             message.tool_calls.map(async (toolCall: any) => {
               const functionName = toolCall.function.name;
               const functionArgs = JSON.parse(toolCall.function.arguments);
-              
+
               console.log(`[Function Call] ${functionName}`, functionArgs);
-              
+
               const result = await executeFunctionCall(functionName, functionArgs, userId, lastUserMessage);
-              
+
               return {
                 role: 'tool' as const,
                 tool_call_id: toolCall.id,
@@ -1113,7 +1124,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
 
           // Adicionar os resultados das funções à conversa
           messages.push(...toolResults);
-          
+
           iteration++;
           continue; // Fazer nova requisição com os resultados
         } else {
@@ -1132,17 +1143,17 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
       if (onStream && fullText) {
         let displayedText = '';
         const chars = fullText.split('');
-        
+
         for (let i = 0; i < chars.length; i++) {
           displayedText += chars[i];
-          
+
           if (onStream) {
             onStream(chars[i], displayedText);
           }
-          
+
           const char = chars[i];
           let delay = 20;
-          
+
           if (char === ' ' || char === '\n') {
             delay = 10;
           } else if (char === '.' || char === '!' || char === '?') {
@@ -1150,25 +1161,25 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
           } else if (char === ',') {
             delay = 60;
           }
-          
+
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
-      
-      return { 
-        success: true, 
-        data: { 
+
+      return {
+        success: true,
+        data: {
           message: fullText,
           response: fullText,
           text: fullText
-        } 
+        }
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
       console.error('[Chat Error]', error);
       return {
         success: false,
-        error: errorMsg.includes('fetch') 
+        error: errorMsg.includes('fetch')
           ? 'Erro de conexão. Verifique sua internet.'
           : errorMsg,
       };
@@ -1176,8 +1187,8 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
   },
 
   sendMessageWithImage: async (
-    phoneNumber: string, 
-    message: string, 
+    phoneNumber: string,
+    message: string,
     imageUri: string,
     onStream?: (chunk: string, fullText: string) => void,
     onThinking?: () => void,
@@ -1190,7 +1201,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
         error: 'API KEY da OpenAI não configurada. Configure EXPO_PUBLIC_API_KEY no arquivo .env com sua chave da OpenAI',
       };
     }
-    
+
     try {
       // Mostrar estado de "pensando"
       if (onThinking) {
@@ -1201,7 +1212,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
       const base64Image = await FileSystem.readAsStringAsync(imageUri, {
         encoding: FileSystem.EncodingType.Base64,
       });
-      
+
       // Determinar o tipo MIME baseado na extensão
       const uriLower = imageUri.toLowerCase();
       let mimeType = 'image/jpeg';
@@ -1212,9 +1223,9 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
       } else if (uriLower.includes('.webp')) {
         mimeType = 'image/webp';
       }
-      
+
       const imageUrl = `data:${mimeType};base64,${base64Image}`;
-      
+
       // Pequeno delay para mostrar o estado de pensando
       await new Promise(resolve => setTimeout(resolve, 1000)); // Um pouco mais para processar imagem
 
@@ -1225,7 +1236,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
 
       // Pequeno delay antes de começar a escrever
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       // Preparar mensagens com conteúdo multimodal
       const messages: any[] = [
         {
@@ -1233,13 +1244,13 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
           content: 'Você é a ION, uma assistente pessoal inteligente e prestativa. Seja amigável, concisa e útil. Quando receber uma imagem, analise-a e forneça informações relevantes sobre ela.'
         }
       ];
-      
+
       // Adicionar mensagem do usuário com imagem
       const userMessage: any = {
         role: 'user',
         content: []
       };
-      
+
       // Adicionar texto se houver
       if (message && message.trim()) {
         userMessage.content.push({
@@ -1247,7 +1258,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
           text: message
         });
       }
-      
+
       // Adicionar imagem
       userMessage.content.push({
         type: 'image_url',
@@ -1255,9 +1266,9 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
           url: imageUrl
         }
       });
-      
+
       messages.push(userMessage);
-      
+
       // Chamar a API Vision da OpenAI (sem streaming - vamos simular)
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -1273,13 +1284,13 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
           stream: false, // Sem streaming - vamos simular depois
         }),
       });
-      
+
       if (!response.ok) {
         let errorMessage = `Erro ${response.status}`;
         try {
           const errorData = await response.json();
           errorMessage = errorData.error?.message || errorData.error?.code || errorMessage;
-          
+
           if (response.status === 401) {
             errorMessage = 'API KEY inválida. Verifique sua chave no arquivo .env';
           } else if (response.status === 429) {
@@ -1290,7 +1301,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
         } catch (e) {
           errorMessage = `Erro ${response.status}: ${response.statusText || 'Erro desconhecido'}`;
         }
-        
+
         return { success: false, error: errorMessage };
       }
 
@@ -1302,20 +1313,20 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
       if (onStream && fullText) {
         let displayedText = '';
         const chars = fullText.split('');
-        
+
         for (let i = 0; i < chars.length; i++) {
           displayedText += chars[i];
-          
+
           // Chamar callback com o texto atual
           if (onStream) {
             onStream(chars[i], displayedText);
           }
-          
+
           // Delay entre caracteres (velocidade de digitação)
           // Velocidade variável: mais rápido para espaços, mais lento para pontuação
           const char = chars[i];
           let delay = 20; // base delay em ms
-          
+
           if (char === ' ' || char === '\n') {
             delay = 10; // mais rápido para espaços
           } else if (char === '.' || char === '!' || char === '?') {
@@ -1323,25 +1334,25 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
           } else if (char === ',') {
             delay = 60; // pausa média para vírgulas
           }
-          
+
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
-      
-      return { 
-        success: true, 
-        data: { 
+
+      return {
+        success: true,
+        data: {
           message: fullText,
           response: fullText,
           text: fullText
-        } 
+        }
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
       console.error('[Chat with Image Error]', error);
       return {
         success: false,
-        error: errorMsg.includes('fetch') 
+        error: errorMsg.includes('fetch')
           ? 'Erro de conexão. Verifique sua internet.'
           : errorMsg,
       };
@@ -1362,15 +1373,15 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
         error: 'API KEY da OpenAI não configurada. Configure EXPO_PUBLIC_API_KEY no arquivo .env com sua chave da OpenAI',
       };
     }
-    
+
     try {
       const fileExtension = documentName.split('.').pop()?.toLowerCase() || '';
       const textExtensions = ['txt', 'md', 'json', 'csv', 'log', 'xml', 'html', 'css', 'js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'h'];
       const pdfExtensions = ['pdf'];
-      
+
       let documentContent = '';
       let isPdf = pdfExtensions.includes(fileExtension);
-      
+
       // Tentar ler o conteúdo do documento
       if (textExtensions.includes(fileExtension)) {
         // Arquivos de texto simples
@@ -1378,7 +1389,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
           documentContent = await FileSystem.readAsStringAsync(documentUri, {
             encoding: FileSystem.EncodingType.UTF8,
           });
-          
+
           // Limitar o tamanho do conteúdo para não exceder limites da API
           if (documentContent.length > 100000) {
             documentContent = documentContent.substring(0, 100000) + '\n\n... (conteúdo truncado - arquivo muito grande)';
@@ -1391,37 +1402,37 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
         // Para PDFs, vamos fazer upload para a OpenAI usando a API de Files
         try {
           console.log('Processing PDF file:', documentName);
-          
+
           // Ler o arquivo como base64 primeiro para garantir que temos acesso
           const base64Content = await FileSystem.readAsStringAsync(documentUri, {
             encoding: FileSystem.EncodingType.Base64,
           });
-          
+
           // Converter base64 para blob para upload
           // No React Native, precisamos usar FormData com o formato correto
           const formData = new FormData();
-          
+
           // No React Native/Expo, o formato correto é usar uri diretamente
           // O name deve ser o nome do arquivo sem caminho
           const fileName = documentName.split('/').pop() || documentName;
-          
+
           formData.append('file', {
             uri: documentUri,
             type: 'application/pdf',
             name: fileName,
           } as any);
           formData.append('purpose', 'assistants');
-          
+
           console.log('FormData prepared with:', {
             uri: documentUri,
             type: 'application/pdf',
             name: fileName
           });
-          
+
           console.log('Uploading PDF to OpenAI...');
           console.log('Document URI:', documentUri);
           console.log('Document Name:', documentName);
-          
+
           const uploadResponse = await fetch('https://api.openai.com/v1/files', {
             method: 'POST',
             headers: {
@@ -1430,19 +1441,19 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
             },
             body: formData as any,
           });
-          
+
           console.log('Upload response status:', uploadResponse.status);
-          
+
           if (uploadResponse.ok) {
             const uploadData = await uploadResponse.json();
             console.log('Upload response data:', JSON.stringify(uploadData, null, 2));
             const fileId = uploadData.id;
-            
+
             if (!fileId) {
               console.error('No file ID in upload response!');
               throw new Error('Upload response missing file ID');
             }
-            
+
             console.log('PDF uploaded successfully, fileId:', fileId);
             console.log('FileId validation:', {
               exists: !!fileId,
@@ -1450,17 +1461,17 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
               length: fileId?.length,
               value: fileId
             });
-            
+
             // Verificar o status do arquivo e aguardar processamento se necessário
             let fileProcessed = false;
             let attempts = 0;
             const maxAttempts = 20; // Aumentar tentativas
-            
+
             console.log('Waiting for file to be processed...');
-            
+
             while (!fileProcessed && attempts < maxAttempts) {
               await new Promise(resolve => setTimeout(resolve, 2000)); // Aguardar 2 segundos
-              
+
               try {
                 const fileStatusResponse = await fetch(`https://api.openai.com/v1/files/${fileId}`, {
                   method: 'GET',
@@ -1468,11 +1479,11 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
                     'Authorization': `Bearer ${API_KEY}`,
                   },
                 });
-                
+
                 if (fileStatusResponse.ok) {
                   const fileStatus = await fileStatusResponse.json();
                   console.log(`Attempt ${attempts + 1}: File status:`, fileStatus.status);
-                  
+
                   if (fileStatus.status === 'processed') {
                     fileProcessed = true;
                     console.log('✅ File processed successfully!');
@@ -1490,10 +1501,10 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
               } catch (statusError) {
                 console.error('Error checking file status:', statusError);
               }
-              
+
               attempts++;
             }
-            
+
             if (!fileProcessed) {
               console.warn('⚠️ File processing timeout after', maxAttempts, 'attempts');
               console.warn('Using fileId anyway:', fileId);
@@ -1502,23 +1513,23 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
             } else {
               console.log('✅ File processed successfully, fileId:', fileId);
             }
-            
+
           } else {
             const errorText = await uploadResponse.text();
             console.error('❌ Upload error status:', uploadResponse.status);
             console.error('❌ Upload error response:', errorText);
-            
+
             // Se o upload falhar, vamos tentar uma abordagem alternativa
             // Converter PDF para base64 e enviar como dados
             try {
               console.log('Attempting alternative: reading PDF as base64...');
-              
+
               // Já temos o base64Content, vamos usar diretamente
               // Limitar o tamanho para não exceder limites da API
-              const limitedBase64 = base64Content.length > 5000000 
-                ? base64Content.substring(0, 5000000) 
+              const limitedBase64 = base64Content.length > 5000000
+                ? base64Content.substring(0, 5000000)
                 : base64Content;
-              
+
               // Tentar enviar o PDF como imagem/data URL
               // Mas primeiro, vamos marcar como falha de upload
               documentContent = `[PDF_UPLOAD_FAILED:${documentName}]`;
@@ -1527,7 +1538,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
               documentContent = `[PDF: ${documentName}]`;
             }
           }
-          
+
         } catch (pdfError) {
           console.error('Error processing PDF:', pdfError);
           // Último recurso: tentar ler como texto
@@ -1554,7 +1565,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
       let fileId: string | null = null;
       let useFileAttachment = false;
       let savedFileId: string | null = null; // Salvar fileId para usar no fallback se necessário
-      
+
       // Verificar se o PDF foi enviado com sucesso
       if (documentContent.startsWith('[PDF_UPLOADED:')) {
         fileId = documentContent.replace('[PDF_UPLOADED:', '').replace(']', '').trim();
@@ -1588,10 +1599,10 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
       const requestBody: any = {
         model: 'gpt-4o',
         messages: [
-            {
-              role: 'system',
-              content: 'Você é a ION, uma assistente pessoal inteligente e prestativa. Seja amigável, concisa e útil.\n\n⚠️ REGRA CRÍTICA - ANÁLISE DE DOCUMENTOS:\nQuando você receber uma mensagem com attachments contendo file_id e a ferramenta file_search, você DEVE:\n\n1. USAR IMEDIATAMENTE a ferramenta file_search com o file_id fornecido nos attachments\n2. NÃO apenas dizer que vai usar - USE A FERRAMENTA AGORA\n3. O arquivo PDF já foi enviado e processado pela OpenAI\n4. O file_id está presente e funcional nos attachments\n5. Você TEM ACESSO TOTAL ao conteúdo completo do documento\n\n✅ PROCESSO OBRIGATÓRIO:\n1. Execute a ferramenta file_search imediatamente quando ver attachments com file_id\n2. Leia e analise TODO o conteúdo do documento\n3. Extraia informações EXATAS e detalhadas do documento real\n4. Forneça respostas completas baseadas APENAS no conteúdo real do documento\n5. NUNCA invente informações - use apenas o que está no documento\n6. Se não encontrar uma informação, diga explicitamente que não está disponível no documento\n\nIMPORTANTE: Não diga que vai usar a ferramenta. USE-A IMEDIATAMENTE. O file_id está nos attachments e está pronto para uso.'
-            }
+          {
+            role: 'system',
+            content: 'Você é a ION, uma assistente pessoal inteligente e prestativa. Seja amigável, concisa e útil.\n\n⚠️ REGRA CRÍTICA - ANÁLISE DE DOCUMENTOS:\nQuando você receber uma mensagem com attachments contendo file_id e a ferramenta file_search, você DEVE:\n\n1. USAR IMEDIATAMENTE a ferramenta file_search com o file_id fornecido nos attachments\n2. NÃO apenas dizer que vai usar - USE A FERRAMENTA AGORA\n3. O arquivo PDF já foi enviado e processado pela OpenAI\n4. O file_id está presente e funcional nos attachments\n5. Você TEM ACESSO TOTAL ao conteúdo completo do documento\n\n✅ PROCESSO OBRIGATÓRIO:\n1. Execute a ferramenta file_search imediatamente quando ver attachments com file_id\n2. Leia e analise TODO o conteúdo do documento\n3. Extraia informações EXATAS e detalhadas do documento real\n4. Forneça respostas completas baseadas APENAS no conteúdo real do documento\n5. NUNCA invente informações - use apenas o que está no documento\n6. Se não encontrar uma informação, diga explicitamente que não está disponível no documento\n\nIMPORTANTE: Não diga que vai usar a ferramenta. USE-A IMEDIATAMENTE. O file_id está nos attachments e está pronto para uso.'
+          }
         ],
         temperature: 1,
         max_tokens: 4000,
@@ -1601,9 +1612,9 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
       if (useFileAttachment && fileId && fileId.length > 0) {
         console.log('✅ Using Assistants API for file_search');
         console.log('FileId:', fileId);
-        
+
         const validFileId = String(fileId).trim();
-        
+
         if (!validFileId || validFileId.length === 0) {
           console.error('❌ Invalid fileId after processing!');
           useFileAttachment = false;
@@ -1612,7 +1623,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
           try {
             // 1. Criar ou obter um assistant com file_search habilitado
             console.log('🔧 Creating/retrieving assistant with file_search...');
-            
+
             // Criar um assistant temporário para esta conversa
             const assistantResponse = await fetch('https://api.openai.com/v1/assistants', {
               method: 'POST',
@@ -1633,7 +1644,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
                 }
               })
             });
-            
+
             let assistantId: string;
             if (assistantResponse.ok) {
               const assistantData = await assistantResponse.json();
@@ -1644,7 +1655,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
               console.log('⚠️ Assistant creation failed, trying direct approach...');
               throw new Error('Assistant creation failed');
             }
-            
+
             // 2. Criar um thread
             console.log('🔧 Creating thread...');
             const threadResponse = await fetch('https://api.openai.com/v1/threads', {
@@ -1669,17 +1680,17 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
                 ]
               })
             });
-            
+
             if (!threadResponse.ok) {
               const errorText = await threadResponse.text();
               console.error('❌ Thread creation failed:', errorText);
               throw new Error('Thread creation failed');
             }
-            
+
             const threadData = await threadResponse.json();
             const threadId = threadData.id;
             console.log('✅ Thread created:', threadId);
-            
+
             // 3. Criar um run
             console.log('🔧 Creating run...');
             const runResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
@@ -1694,25 +1705,25 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
                 instructions: 'Analise o documento anexado completamente e forneça respostas detalhadas baseadas apenas no conteúdo real do documento.'
               })
             });
-            
+
             if (!runResponse.ok) {
               const errorText = await runResponse.text();
               console.error('❌ Run creation failed:', errorText);
               throw new Error('Run creation failed');
             }
-            
+
             const runData = await runResponse.json();
             let runId = runData.id;
             console.log('✅ Run created:', runId);
-            
+
             // 4. Polling do status do run
             let runStatus = runData.status;
             let attempts = 0;
             const maxAttempts = 30;
-            
+
             while (runStatus !== 'completed' && runStatus !== 'failed' && attempts < maxAttempts) {
               await new Promise(resolve => setTimeout(resolve, 1000));
-              
+
               const statusResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
                 method: 'GET',
                 headers: {
@@ -1720,20 +1731,20 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
                   'OpenAI-Beta': 'assistants=v2'
                 }
               });
-              
+
               if (statusResponse.ok) {
                 const statusData = await statusResponse.json();
                 runStatus = statusData.status;
                 console.log(`⏳ Run status (attempt ${attempts + 1}):`, runStatus);
               }
-              
+
               attempts++;
             }
-            
+
             if (runStatus !== 'completed') {
               throw new Error(`Run failed or timeout. Status: ${runStatus}`);
             }
-            
+
             // 5. Obter mensagens do thread
             console.log('📥 Retrieving messages...');
             const messagesResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
@@ -1743,27 +1754,27 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
                 'OpenAI-Beta': 'assistants=v2'
               }
             });
-            
+
             if (!messagesResponse.ok) {
               throw new Error('Failed to retrieve messages');
             }
-            
+
             const messagesData = await messagesResponse.json();
             console.log('📥 Messages data:', JSON.stringify(messagesData, null, 2));
-            
+
             const assistantMessage = messagesData.data
               .filter((msg: any) => msg.role === 'assistant')
               .sort((a: any, b: any) => b.created_at - a.created_at)[0];
-            
+
             console.log('📥 Assistant message:', JSON.stringify(assistantMessage, null, 2));
-            
+
             if (!assistantMessage) {
               throw new Error('No assistant message found');
             }
-            
+
             // Extrair o texto da mensagem - pode estar em diferentes formatos
             let aiMessage = 'Desculpe, não consegui processar o documento.';
-            
+
             if (assistantMessage.content && Array.isArray(assistantMessage.content)) {
               // Formato array de content items
               const textContent = assistantMessage.content.find((item: any) => item.type === 'text');
@@ -1777,10 +1788,10 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
             } else if (typeof assistantMessage.content === 'string') {
               aiMessage = assistantMessage.content;
             }
-            
+
             console.log('✅ Successfully retrieved message from Assistants API');
             console.log('📄 Extracted message:', aiMessage.substring(0, 200) + '...');
-            
+
             return {
               success: true,
               data: {
@@ -1789,7 +1800,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
                 text: aiMessage
               }
             };
-            
+
           } catch (assistantError) {
             console.error('❌ Assistants API error:', assistantError);
             console.log('⚠️ Falling back to Chat Completions without attachments...');
@@ -1798,7 +1809,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
           }
         }
       }
-      
+
       // Se não usamos Assistants API ou se falhou, usar Chat Completions normal
       if (!useFileAttachment) {
         requestBody.messages.push({
@@ -1810,7 +1821,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
       // Chamar a API da OpenAI (Chat Completions)
       console.log('📤 Sending request to OpenAI with document...');
       console.log('📋 Full request body:', JSON.stringify(requestBody, null, 2));
-      
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -1819,20 +1830,20 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
         },
         body: JSON.stringify(requestBody),
       });
-      
+
       console.log('📥 OpenAI response status:', response.status);
 
       if (!response.ok) {
         let errorMessage = `Erro ${response.status}`;
         let shouldRetryWithoutAttachments = false;
-        
+
         try {
           const errorText = await response.text();
           console.error('❌ OpenAI error response (raw):', errorText);
           const errorData = JSON.parse(errorText);
           console.error('❌ OpenAI error response (parsed):', JSON.stringify(errorData, null, 2));
           errorMessage = errorData.error?.message || errorData.error?.code || errorMessage;
-          
+
           if (response.status === 401) {
             errorMessage = 'API KEY inválida. Verifique sua chave no arquivo .env';
           } else if (response.status === 429) {
@@ -1854,14 +1865,14 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
           console.error('Error response text:', errorText);
           errorMessage = `Erro ${response.status}: ${response.statusText}`;
         }
-        
+
         // Se for erro de attachments, tentar sem attachments
         if (shouldRetryWithoutAttachments && useFileAttachment && savedFileId) {
           console.log('🔄 Retrying without attachments, using file_id in message...');
-          
+
           // Tentar abordagem alternativa: mencionar o file_id na mensagem
           const fallbackMessage = `${fullMessage}\n\nIMPORTANTE: Um arquivo PDF foi enviado e processado pela OpenAI. O file_id é: ${savedFileId}. Por favor, use este file_id para acessar o conteúdo do documento através da API da OpenAI se necessário. Mas por enquanto, trabalhe com as informações que você tem acesso.`;
-          
+
           const fallbackRequestBody = {
             model: 'gpt-4o',
             messages: [
@@ -1877,7 +1888,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
             temperature: 1,
             max_tokens: 4000,
           };
-          
+
           try {
             const fallbackResponse = await fetch('https://api.openai.com/v1/chat/completions', {
               method: 'POST',
@@ -1887,11 +1898,11 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
               },
               body: JSON.stringify(fallbackRequestBody),
             });
-            
+
             if (fallbackResponse.ok) {
               const fallbackData = await fallbackResponse.json();
               const fallbackMessage = fallbackData.choices?.[0]?.message?.content || 'Desculpe, não consegui processar o documento.';
-              
+
               return {
                 success: true,
                 data: {
@@ -1905,7 +1916,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
             console.error('❌ Fallback also failed:', fallbackError);
           }
         }
-        
+
         return { success: false, error: errorMessage };
       }
 
@@ -1913,31 +1924,31 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
       console.log('📥 OpenAI response (raw):', responseText.substring(0, 500) + '...');
       let data = JSON.parse(responseText);
       console.log('📥 OpenAI response data:', JSON.stringify(data, null, 2));
-      
+
       // Processar tool_calls corretamente - loop até obter resposta final
       let conversationMessages = [...requestBody.messages];
       let aiMessage = '';
       let maxIterations = 5; // Limitar iterações para evitar loops infinitos
       let iteration = 0;
-      
+
       while (iteration < maxIterations) {
         const message = data.choices?.[0]?.message;
-        
+
         if (!message) {
           console.error('❌ No message in response');
           break;
         }
-        
+
         // Adicionar a mensagem do assistente à conversa
         conversationMessages.push(message);
-        
+
         // Verificar se há tool_calls
         if (message.tool_calls && message.tool_calls.length > 0) {
           console.log(`🔧 Tool calls detected (iteration ${iteration + 1}):`, JSON.stringify(message.tool_calls, null, 2));
-          
+
           // Para file_search, quando há tool_calls, precisamos adicionar respostas de tool
           // e então fazer uma nova requisição para obter o resultado
-          
+
           // Adicionar respostas de tool para cada tool_call
           const toolResponses = message.tool_calls.map((toolCall: any) => {
             // Para file_search, a OpenAI processa automaticamente - não precisamos fornecer conteúdo manual
@@ -1948,12 +1959,12 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
               content: '[O arquivo foi processado e está disponível. Por favor, analise o conteúdo completo do documento e forneça uma resposta detalhada baseada no conteúdo real.]'
             };
           });
-          
+
           // Adicionar as respostas de tool às mensagens
           conversationMessages.push(...toolResponses);
-          
+
           iteration++;
-          
+
           // Fazer nova requisição com as mensagens acumuladas incluindo as respostas de tool
           console.log(`🔄 Making follow-up request (iteration ${iteration}) to get file content...`);
           const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -1969,7 +1980,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
               max_tokens: requestBody.max_tokens,
             }),
           });
-          
+
           if (!followUpResponse.ok) {
             const errorText = await followUpResponse.text();
             console.error('❌ Follow-up error:', errorText);
@@ -1977,11 +1988,11 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
             aiMessage = message.content || 'Erro ao processar o documento.';
             break;
           }
-          
+
           const followUpText = await followUpResponse.text();
           data = JSON.parse(followUpText);
           console.log(`📥 Follow-up response (iteration ${iteration}):`, JSON.stringify(data, null, 2));
-          
+
           // Continuar o loop para verificar se há mais tool_calls ou se temos a resposta final
           continue;
         } else {
@@ -1992,25 +2003,25 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
           break;
         }
       }
-      
+
       // Se ainda não temos mensagem, usar a última disponível
       if (!aiMessage || aiMessage.trim() === '') {
         aiMessage = data.choices?.[0]?.message?.content || 'Desculpe, não consegui processar o documento.';
         console.warn('⚠️ Using fallback message');
       }
-      
+
       // Verificar se o modelo disse que vai usar a ferramenta mas não executou tool_calls
-      const saysWillUseTool = aiMessage.toLowerCase().includes('vou usar') || 
-                               aiMessage.toLowerCase().includes('vou utilizar') ||
-                               aiMessage.toLowerCase().includes('usar a ferramenta') ||
-                               aiMessage.toLowerCase().includes('usar file_search') ||
-                               (aiMessage.toLowerCase().includes('analisar') && aiMessage.toLowerCase().includes('ferramenta'));
-      
+      const saysWillUseTool = aiMessage.toLowerCase().includes('vou usar') ||
+        aiMessage.toLowerCase().includes('vou utilizar') ||
+        aiMessage.toLowerCase().includes('usar a ferramenta') ||
+        aiMessage.toLowerCase().includes('usar file_search') ||
+        (aiMessage.toLowerCase().includes('analisar') && aiMessage.toLowerCase().includes('ferramenta'));
+
       const hasToolCalls = data.choices?.[0]?.message?.tool_calls && data.choices[0].message.tool_calls.length > 0;
-      
+
       if (saysWillUseTool && !hasToolCalls && iteration === 0 && savedFileId) {
         console.warn('⚠️ Modelo disse que vai usar a ferramenta mas não executou tool_calls. Forçando nova tentativa...');
-        
+
         // Fazer uma nova requisição com instrução mais explícita
         const retryMessage = {
           role: 'user',
@@ -2022,7 +2033,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
             }
           ]
         };
-        
+
         const retryRequestBody = {
           model: requestBody.model,
           messages: [
@@ -2036,7 +2047,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
           temperature: requestBody.temperature,
           max_tokens: requestBody.max_tokens,
         };
-        
+
         try {
           const retryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -2046,11 +2057,11 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
             },
             body: JSON.stringify(retryRequestBody),
           });
-          
+
           if (retryResponse.ok) {
             const retryData = await retryResponse.json();
             console.log('🔄 Retry response:', JSON.stringify(retryData, null, 2));
-            
+
             if (retryData.choices?.[0]?.message?.tool_calls) {
               // Agora sim executou tool_calls, processar normalmente
               console.log('✅ Retry successful - tool_calls detected');
@@ -2061,7 +2072,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
                 tool_call_id: toolCall.id,
                 content: '[O arquivo foi processado e está disponível. Por favor, analise o conteúdo completo do documento e forneça uma resposta detalhada baseada no conteúdo real.]'
               }));
-              
+
               const retryFollowUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -2079,7 +2090,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
                   max_tokens: requestBody.max_tokens,
                 }),
               });
-              
+
               if (retryFollowUpResponse.ok) {
                 const retryFollowUpData = await retryFollowUpResponse.json();
                 aiMessage = retryFollowUpData.choices?.[0]?.message?.content || aiMessage;
@@ -2093,30 +2104,30 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
           console.error('❌ Retry error:', retryError);
         }
       }
-      
+
       // Se a mensagem ainda menciona que não tem file_id, adicionar instrução adicional
-      if (aiMessage.toLowerCase().includes('não receb') || 
-          aiMessage.toLowerCase().includes('não tem') || 
-          aiMessage.toLowerCase().includes('file_id') ||
-          (aiMessage.toLowerCase().includes('anexo') && aiMessage.toLowerCase().includes('não'))) {
+      if (aiMessage.toLowerCase().includes('não receb') ||
+        aiMessage.toLowerCase().includes('não tem') ||
+        aiMessage.toLowerCase().includes('file_id') ||
+        (aiMessage.toLowerCase().includes('anexo') && aiMessage.toLowerCase().includes('não'))) {
         console.warn('⚠️ Modelo ainda menciona problema com file_id. Adicionando instrução adicional...');
         // Não fazer nada, apenas logar - o system prompt já foi atualizado
       }
 
-      return { 
-        success: true, 
-        data: { 
+      return {
+        success: true,
+        data: {
           message: aiMessage,
           response: aiMessage,
           text: aiMessage
-        } 
+        }
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
       console.error('[Chat with Document Error]', error);
       return {
         success: false,
-        error: errorMsg.includes('fetch') 
+        error: errorMsg.includes('fetch')
           ? 'Erro de conexão. Verifique sua internet.'
           : errorMsg,
       };
@@ -2144,7 +2155,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
 
       // Criar FormData para enviar o arquivo
       const formData = new FormData();
-      
+
       // Formato correto para React Native
       formData.append('file', {
         uri: audioUri,
@@ -2170,7 +2181,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
         try {
           const errorData = await transcriptionResponse.json();
           errorMessage = errorData.error?.message || errorData.error?.code || errorMessage;
-          
+
           if (transcriptionResponse.status === 401) {
             errorMessage = 'API KEY inválida. Verifique sua chave no arquivo .env';
           } else if (transcriptionResponse.status === 429) {
@@ -2179,7 +2190,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
         } catch (e) {
           errorMessage = `Erro ${transcriptionResponse.status}: ${transcriptionResponse.statusText}`;
         }
-        
+
         return { success: false, error: errorMessage };
       }
 
@@ -2195,7 +2206,7 @@ Sempre confirme ao usuário quando uma ação foi executada com sucesso.`
       console.error('[Transcription Error]', error);
       return {
         success: false,
-        error: errorMsg.includes('fetch') 
+        error: errorMsg.includes('fetch')
           ? 'Erro de conexão. Verifique sua internet.'
           : errorMsg,
       };

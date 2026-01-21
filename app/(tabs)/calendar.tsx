@@ -12,6 +12,7 @@ import {
   Alert,
   ActivityIndicator,
   Switch,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HugeIcon } from '../../components/HugeIcon';
@@ -75,7 +76,7 @@ export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
   const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('tasks');
-  
+
   // Calendar states
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [events, setEvents] = useState<Event[]>([]);
@@ -170,29 +171,29 @@ export default function CalendarScreen() {
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
     setCurrentDate(new Date());
-    
+
     try {
       // Load tasks
       const todosData = await toDoService.getByUsuarioId(user.usuarioId);
       const lembretesData = await lembretesService.getByUsuarioId(user.usuarioId);
-      
+
       const now = new Date();
       const tasksToDelete: number[] = [];
-      
+
       const remindersFormatted: Reminder[] = todosData.map((todo) => {
         const completed = todo.status === 'concluido' || todo.status === 'completo';
         const completedAt = todo.completed_at ? new Date(todo.completed_at) : null;
-        
+
         if (completed && completedAt) {
           const hoursSinceCompletion = differenceInHours(now, completedAt);
           if (hoursSinceCompletion >= 24) {
             tasksToDelete.push(todo.id);
           }
         }
-        
+
         return {
           id: todo.id.toString(),
           title: todo.item || 'Sem título',
@@ -204,7 +205,7 @@ export default function CalendarScreen() {
           completedAt: completedAt || undefined,
         };
       });
-      
+
       let finalReminders: Reminder[];
       if (tasksToDelete.length > 0) {
         await Promise.all(tasksToDelete.map(id => toDoService.delete(id)));
@@ -224,25 +225,25 @@ export default function CalendarScreen() {
         finalReminders = remindersFormatted;
         setReminders(remindersFormatted);
       }
-      
+
       // Check for old tasks or passed reminders
       const pendingReminders = finalReminders.filter(r => !r.completed);
       let reminderPassedTask: Reminder | null = null;
       let reminderPassedLembrete: any = null;
-      
+
       for (const reminder of pendingReminders) {
-        const taskLembretes = lembretesData.filter(l => 
-          l.lembrete && reminder.title && 
+        const taskLembretes = lembretesData.filter(l =>
+          l.lembrete && reminder.title &&
           l.lembrete.toLowerCase().includes(reminder.title.toLowerCase()) &&
           l.data_para_lembrar
         );
-        
+
         if (taskLembretes.length > 0) {
           for (const lembrete of taskLembretes) {
             if (lembrete.data_para_lembrar) {
               const lembreteDate = new Date(lembrete.data_para_lembrar);
               const hoursSinceLembrete = differenceInHours(now, lembreteDate);
-              
+
               if (hoursSinceLembrete >= 2 && lembreteDate <= now) {
                 reminderPassedTask = reminder;
                 reminderPassedLembrete = lembrete;
@@ -252,7 +253,7 @@ export default function CalendarScreen() {
           }
         }
       }
-      
+
       if (reminderPassedTask && reminderPassedLembrete) {
         setOldTaskSuggestion(reminderPassedTask);
         setActiveLembrete(reminderPassedLembrete);
@@ -261,8 +262,8 @@ export default function CalendarScreen() {
       } else {
         const oldTasks = finalReminders.filter((r) => {
           if (r.completed) return false;
-          const hasActiveLembrete = lembretesData.some(l => 
-            l.lembrete && r.title && 
+          const hasActiveLembrete = lembretesData.some(l =>
+            l.lembrete && r.title &&
             l.lembrete.toLowerCase().includes(r.title.toLowerCase()) &&
             l.data_para_lembrar &&
             new Date(l.data_para_lembrar) > now
@@ -271,7 +272,7 @@ export default function CalendarScreen() {
           const daysSinceCreation = differenceInCalendarDays(now, r.createdAt);
           return daysSinceCreation >= 7;
         });
-        
+
         if (oldTasks.length > 0) {
           const oldestTask = oldTasks.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())[0];
           setOldTaskSuggestion(oldestTask);
@@ -283,7 +284,7 @@ export default function CalendarScreen() {
           setShowIONMessage(false);
         }
       }
-      
+
       // Load calendar events
       const eventsFormatted: Event[] = lembretesData
         .filter((lembrete) => lembrete.data_para_lembrar)
@@ -300,7 +301,7 @@ export default function CalendarScreen() {
             phoneNumber: lembrete.celular,
           };
         });
-      
+
       setEvents(eventsFormatted);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -377,7 +378,7 @@ export default function CalendarScreen() {
         setNewCategory('Pessoal');
         setModalVisible(false);
         await loadData();
-    } else {
+      } else {
         throw new Error('Não foi possível criar a tarefa');
       }
     } catch (error) {
@@ -443,9 +444,9 @@ export default function CalendarScreen() {
           return taskWords.some(word => word.length > 3 && lembreteText.includes(word));
         })
         .slice(0, 5);
-      
+
       if (similarReminders.length === 0) return '';
-      
+
       return similarReminders.map(l => {
         const date = l.data_para_lembrar ? new Date(l.data_para_lembrar) : null;
         const hour = date ? date.getHours() : null;
@@ -464,7 +465,7 @@ export default function CalendarScreen() {
       const currentMinute = now.getMinutes();
       const history = await getSimilarRemindersHistory(taskTitle);
       const preferredHours = await getPreferredHours(taskTitle);
-      
+
       const prompt = `Você é a ION, uma assistente pessoal inteligente. Preciso que você sugira um horário (apenas a hora, número inteiro de 0 a 23) para criar um lembrete de uma tarefa.
 
 Tarefa: "${taskTitle}"
@@ -490,7 +491,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
 
       const phoneNumber = user?.phoneNumber || user?.usuario?.celular || 'user';
       const response = await chatService.sendMessage(phoneNumber, prompt);
-      
+
       if (response.success && response.data?.message) {
         const responseText = response.data.message.trim();
         const hourMatch = responseText.match(/\b([0-9]|1[0-9]|2[0-3])\b/);
@@ -507,26 +508,26 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
           }
         }
       }
-      
+
       if (preferredHours.length > 0) {
         const nowForPreferred = new Date();
         const minTimeForPreferred = new Date(nowForPreferred.getTime() + 15 * 60 * 1000);
         const minHourForPreferred = minTimeForPreferred.getHours();
         const minMinuteForPreferred = minTimeForPreferred.getMinutes();
         const minValidHourForPreferred = minMinuteForPreferred > 0 ? minHourForPreferred + 1 : minHourForPreferred;
-        
+
         const validPreferred = preferredHours.find(h => h >= minValidHourForPreferred && h <= 22);
         if (validPreferred) {
           return validPreferred;
         }
       }
-      
+
       const nowForFallback = new Date();
       const minTimeForFallback = new Date(nowForFallback.getTime() + 15 * 60 * 1000);
       const minHourForFallback = minTimeForFallback.getHours();
       const minMinuteForFallback = minTimeForFallback.getMinutes();
       const minValidHourForFallback = minMinuteForFallback > 0 ? minHourForFallback + 1 : minHourForFallback;
-      
+
       let fallbackHour = Math.max(minValidHourForFallback, 8);
       if (fallbackHour <= currentHour) {
         fallbackHour = currentHour + 1;
@@ -542,20 +543,20 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
           const minHourForError = minTimeForError.getHours();
           const minMinuteForError = minTimeForError.getMinutes();
           const minValidHourForError = minMinuteForError > 0 ? minHourForError + 1 : minHourForError;
-          
+
           const validPreferred = preferredHours.find(h => h >= minValidHourForError && h <= 22);
           if (validPreferred) {
             return validPreferred;
           }
         }
-      } catch (e) {}
+      } catch (e) { }
       const nowForFinal = new Date();
       const minTimeForFinal = new Date(nowForFinal.getTime() + 15 * 60 * 1000);
       const minHourForFinal = minTimeForFinal.getHours();
       const minMinuteForFinal = minTimeForFinal.getMinutes();
       const minValidHourForFinal = minMinuteForFinal > 0 ? minHourForFinal + 1 : minHourForFinal;
       const currentHourForFinal = nowForFinal.getHours();
-      
+
       let fallbackHour = Math.max(minValidHourForFinal, 8);
       if (fallbackHour <= currentHourForFinal) {
         fallbackHour = currentHourForFinal + 1;
@@ -569,26 +570,26 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
       const key = `preferred_hour_${user?.usuarioId}`;
       const existing = await AsyncStorage.getItem(key);
       const preferences = existing ? JSON.parse(existing) : {};
-      
+
       const keywords = taskTitle.toLowerCase().split(' ');
-      const category = keywords.find(w => 
+      const category = keywords.find(w =>
         ['academia', 'exercício', 'treino', 'malhar'].includes(w) ? 'exercicio' :
-        ['compras', 'supermercado', 'mercado'].includes(w) ? 'compras' :
-        ['médico', 'clínica', 'consulta', 'doutor'].includes(w) ? 'medico' :
-        null
+          ['compras', 'supermercado', 'mercado'].includes(w) ? 'compras' :
+            ['médico', 'clínica', 'consulta', 'doutor'].includes(w) ? 'medico' :
+              null
       ) || 'geral';
-      
+
       if (!preferences[category]) {
         preferences[category] = [];
       }
-      
+
       if (!preferences[category].includes(hour)) {
         preferences[category].push(hour);
         if (preferences[category].length > 5) {
           preferences[category] = preferences[category].slice(-5);
         }
       }
-      
+
       await AsyncStorage.setItem(key, JSON.stringify(preferences));
     } catch (error) {
       console.error('Error saving preferred hour:', error);
@@ -600,16 +601,16 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
       const key = `preferred_hour_${user?.usuarioId}`;
       const existing = await AsyncStorage.getItem(key);
       if (!existing) return [];
-      
+
       const preferences = JSON.parse(existing);
       const keywords = taskTitle.toLowerCase().split(' ');
-      const category = keywords.find(w => 
+      const category = keywords.find(w =>
         ['academia', 'exercício', 'treino', 'malhar'].includes(w) ? 'exercicio' :
-        ['compras', 'supermercado', 'mercado'].includes(w) ? 'compras' :
-        ['médico', 'clínica', 'consulta', 'doutor'].includes(w) ? 'medico' :
-        null
+          ['compras', 'supermercado', 'mercado'].includes(w) ? 'compras' :
+            ['médico', 'clínica', 'consulta', 'doutor'].includes(w) ? 'medico' :
+              null
       ) || 'geral';
-      
+
       return preferences[category] || [];
     } catch (error) {
       console.error('Error getting preferred hours:', error);
@@ -619,33 +620,33 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
 
   const handleIONYes = async () => {
     if (!oldTaskSuggestion || !user?.usuarioId) return;
-    
+
     if (messageType === 'reminder_passed') {
       const now = new Date();
       const minTime = new Date(now.getTime() + 15 * 60 * 1000);
       const minHour = minTime.getHours();
       const minMinute = minTime.getMinutes();
-      const defaultHour = minMinute > 0 
-        ? (minHour + 1 <= 23 ? minHour + 1 : 8) 
+      const defaultHour = minMinute > 0
+        ? (minHour + 1 <= 23 ? minHour + 1 : 8)
         : (minHour <= 23 ? minHour : 8);
       setSelectedHour(defaultHour);
       setSelectedDay(0);
       setShowTimePicker(true);
       return;
     }
-    
+
     try {
       setIsGeneratingReminder(true);
       setShowIONMessage(false);
-      
+
       const suggestedHour = await getSuggestedTimeFromGPT(oldTaskSuggestion.title);
-      
+
       const today = new Date();
       today.setHours(suggestedHour || 15, 0, 0, 0);
-      
+
       const now = new Date();
       const minTime = new Date(now.getTime() + 15 * 60 * 1000);
-      
+
       if (today.getTime() < minTime.getTime()) {
         if (today.getDate() === now.getDate()) {
           today.setTime(minTime.getTime());
@@ -654,7 +655,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
           today.setDate(today.getDate() + 1);
         }
       }
-      
+
       const lembrete = await lembretesService.create({
         usuario_id: user.usuarioId,
         lembrete: oldTaskSuggestion.title,
@@ -683,32 +684,32 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
 
   const handleTimeSelection = async (hour: number, dayOffset: number) => {
     if (!oldTaskSuggestion || !user?.usuarioId) return;
-    
+
     try {
       setIsGeneratingReminder(true);
       setShowTimePicker(false);
       setShowIONMessage(false);
-      
+
       const selectedDate = new Date();
       selectedDate.setDate(selectedDate.getDate() + dayOffset);
       selectedDate.setHours(hour, 0, 0, 0);
       selectedDate.setMinutes(0, 0, 0);
-      
+
       const now = new Date();
       const minTime = new Date(now.getTime() + 15 * 60 * 1000);
-      
+
       if (dayOffset === 0) {
         if (selectedDate.getTime() < minTime.getTime()) {
           selectedDate.setTime(minTime.getTime());
           selectedDate.setSeconds(0, 0);
         }
       }
-      
+
       if (activeLembrete) {
         const updated = await lembretesService.update(activeLembrete.id, {
           data_para_lembrar: selectedDate.toISOString(),
         });
-        
+
         if (updated) {
           await savePreferredHour(oldTaskSuggestion.title, hour);
           Alert.alert('Sucesso', `Lembrete atualizado para ${format(selectedDate, "dd/MM/yyyy 'às' HH'h'", { locale: ptBR })}`);
@@ -731,7 +732,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
           throw new Error('Não foi possível criar o lembrete');
         }
       }
-      
+
       setOldTaskSuggestion(null);
       setActiveLembrete(null);
       await loadData();
@@ -755,18 +756,18 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
 
     const newStatus = !reminder.completed ? 'concluido' : 'pendente';
     const completedAt = !reminder.completed ? new Date().toISOString() : null;
-    
+
     try {
       const todoId = parseInt(id);
-      const updated = await toDoService.update(todoId, { 
+      const updated = await toDoService.update(todoId, {
         status: newStatus,
         completed_at: completedAt,
       });
-      
+
       if (updated) {
         setReminders(reminders.map((r) =>
-          r.id === id ? { 
-            ...r, 
+          r.id === id ? {
+            ...r,
             completed: !r.completed,
             completedAt: completedAt ? new Date(completedAt) : undefined,
           } : r
@@ -1009,10 +1010,10 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
               style={[styles.tabButton, activeTab === 'tasks' && styles.tabButtonActive]}
               onPress={() => setActiveTab('tasks')}
             >
-              <HugeIcon 
-                name="checkmark-circle" 
-                size={20} 
-                color={activeTab === 'tasks' ? Colors.ionBlue : Colors.textSecondary} 
+              <HugeIcon
+                name="checkmark-circle"
+                size={20}
+                color={activeTab === 'tasks' ? Colors.ionBlue : Colors.textSecondary}
               />
               <Text style={[styles.tabButtonText, activeTab === 'tasks' && styles.tabButtonTextActive]}>
                 Tarefas
@@ -1022,16 +1023,16 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
               style={[styles.tabButton, activeTab === 'calendar' && styles.tabButtonActive]}
               onPress={() => setActiveTab('calendar')}
             >
-              <HugeIcon 
-                name="calendar" 
-                size={20} 
-                color={activeTab === 'calendar' ? Colors.ionBlue : Colors.textSecondary} 
+              <HugeIcon
+                name="calendar"
+                size={20}
+                color={activeTab === 'calendar' ? Colors.ionBlue : Colors.textSecondary}
               />
               <Text style={[styles.tabButtonText, activeTab === 'calendar' && styles.tabButtonTextActive]}>
                 Calendário
               </Text>
             </TouchableOpacity>
-            </View>
+          </View>
           {activeTab === 'tasks' && (
             <TouchableOpacity
               style={styles.headerButton}
@@ -1041,13 +1042,13 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
             </TouchableOpacity>
           )}
           {activeTab === 'calendar' && (
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => setPreferencesModalVisible(true)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <HugeIcon name="settings-outline" size={22} color={Colors.textPrimary} />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => setPreferencesModalVisible(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <HugeIcon name="settings-outline" size={22} color={Colors.textPrimary} />
+            </TouchableOpacity>
           )}
         </View>
 
@@ -1077,26 +1078,26 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
                   <Text style={styles.insightLabel}>ION</Text>
                   <View style={styles.insightBubble}>
                     <Text style={styles.insightText}>
-                      {messageType === 'old_task' 
+                      {messageType === 'old_task'
                         ? `Percebi que '${oldTaskSuggestion.title}' está na sua lista há ${differenceInCalendarDays(currentDate, oldTaskSuggestion.createdAt)} dias. Posso criar um lembrete inteligente para você em um horário que faça sentido para essa tarefa?`
                         : `Vejo que você ainda não concluiu '${oldTaskSuggestion.title}'. O lembrete que criamos já passou há mais de 2 horas. Gostaria de criar um novo lembrete em outro horário?`
                       }
                     </Text>
                     <View style={styles.insightActions}>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.insightActionButton}
                         onPress={handleIONYes}
                       >
                         <Text style={styles.insightActionText}>Sim, por favor</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.insightActionButtonSecondary}
                         onPress={handleIONNo}
                       >
-                    <Text style={styles.insightActionTextSecondary}>Não</Text>
-                    </TouchableOpacity>
-          </View>
-        </View>
+                        <Text style={styles.insightActionTextSecondary}>Não</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 </View>
               </View>
             )}
@@ -1124,87 +1125,87 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
 
         {/* Calendar Tab */}
         {activeTab === 'calendar' && (
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-          <BlurView intensity={20} style={styles.calendarContainer}>
-            <Calendar
-              current={selectedDate}
-              onDayPress={onDayPress}
-              markedDates={{
-                ...markedDates,
-                [selectedDate]: {
-                  ...markedDates[selectedDate],
-                  selected: true,
-                  selectedColor: Colors.ionBlue,
-                },
-              }}
-              theme={{
-                backgroundColor: Colors.glassBackground,
-                calendarBackground: Colors.glassBackground,
-                textSectionTitleColor: Colors.textSecondary,
-                selectedDayBackgroundColor: Colors.ionBlue,
-                selectedDayTextColor: Colors.backgroundDark,
-                todayTextColor: Colors.ionBlue,
-                dayTextColor: Colors.textPrimary,
-                textDisabledColor: Colors.textSecondary,
-                dotColor: Colors.ionBlue,
-                selectedDotColor: Colors.backgroundDark,
-                arrowColor: Colors.ionBlue,
-                monthTextColor: Colors.textPrimary,
-                textDayFontWeight: '500',
-                textMonthFontWeight: 'bold',
-                textDayHeaderFontWeight: '600',
-                textDayFontSize: 16,
-                textMonthFontSize: 18,
-                textDayHeaderFontSize: 14,
-              }}
-              markingType="multi-dot"
-            />
-          </BlurView>
+          <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+            <BlurView intensity={20} style={styles.calendarContainer}>
+              <Calendar
+                current={selectedDate}
+                onDayPress={onDayPress}
+                markedDates={{
+                  ...markedDates,
+                  [selectedDate]: {
+                    ...markedDates[selectedDate],
+                    selected: true,
+                    selectedColor: Colors.ionBlue,
+                  },
+                }}
+                theme={{
+                  backgroundColor: Colors.glassBackground,
+                  calendarBackground: Colors.glassBackground,
+                  textSectionTitleColor: Colors.textSecondary,
+                  selectedDayBackgroundColor: Colors.ionBlue,
+                  selectedDayTextColor: Colors.backgroundDark,
+                  todayTextColor: Colors.ionBlue,
+                  dayTextColor: Colors.textPrimary,
+                  textDisabledColor: Colors.textSecondary,
+                  dotColor: Colors.ionBlue,
+                  selectedDotColor: Colors.backgroundDark,
+                  arrowColor: Colors.ionBlue,
+                  monthTextColor: Colors.textPrimary,
+                  textDayFontWeight: '500',
+                  textMonthFontWeight: 'bold',
+                  textDayHeaderFontWeight: '600',
+                  textDayFontSize: 16,
+                  textMonthFontSize: 18,
+                  textDayHeaderFontSize: 14,
+                }}
+                markingType="multi-dot"
+              />
+            </BlurView>
 
-          <View style={styles.eventsContainer}>
-            <Text style={styles.sectionTitle}>
+            <View style={styles.eventsContainer}>
+              <Text style={styles.sectionTitle}>
                 Eventos em {format(new Date(selectedDate + 'T00:00:00'), "dd 'de' MMMM", { locale: ptBR })}
-            </Text>
+              </Text>
 
-            {selectedEvents.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <HugeIcon name="calendar-outline" size={64} color={Colors.textSecondary} />
-                <Text style={styles.emptyText}>Nenhum evento agendado</Text>
-              </View>
-            ) : (
-              selectedEvents.map((event) => (
-                <BlurView key={event.id} intensity={20} style={styles.eventCard}>
-                  <View style={styles.eventTime}>
-                    <HugeIcon name="time-outline" size={20} color={Colors.ionBlue} />
-                    <Text style={styles.eventTimeText}>{event.time}</Text>
-                  </View>
-                  <View style={styles.eventContent}>
-                    <Text style={styles.eventTitle}>{event.title}</Text>
-                    {event.description && (
-                      <Text style={styles.eventDescription}>{event.description}</Text>
-                    )}
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => deleteEvent(event.id)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <HugeIcon name="trash-outline" size={20} color={Colors.error} />
-                  </TouchableOpacity>
-                </BlurView>
-              ))
-            )}
-          </View>
-        </ScrollView>
+              {selectedEvents.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <HugeIcon name="calendar-outline" size={64} color={Colors.textSecondary} />
+                  <Text style={styles.emptyText}>Nenhum evento agendado</Text>
+                </View>
+              ) : (
+                selectedEvents.map((event) => (
+                  <BlurView key={event.id} intensity={20} style={styles.eventCard}>
+                    <View style={styles.eventTime}>
+                      <HugeIcon name="time-outline" size={20} color={Colors.ionBlue} />
+                      <Text style={styles.eventTimeText}>{event.time}</Text>
+                    </View>
+                    <View style={styles.eventContent}>
+                      <Text style={styles.eventTitle}>{event.title}</Text>
+                      {event.description && (
+                        <Text style={styles.eventDescription}>{event.description}</Text>
+                      )}
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => deleteEvent(event.id)}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <HugeIcon name="trash-outline" size={20} color={Colors.error} />
+                    </TouchableOpacity>
+                  </BlurView>
+                ))
+              )}
+            </View>
+          </ScrollView>
         )}
 
         {/* FAB for Calendar */}
         {activeTab === 'calendar' && (
-        <TouchableOpacity
-          style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 80 }]}
+          <TouchableOpacity
+            style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 80 }]}
             onPress={() => setCalendarModalVisible(true)}
-        >
-          <HugeIcon name="add" size={32} color={Colors.textInverse} />
-        </TouchableOpacity>
+          >
+            <HugeIcon name="add" size={32} color={Colors.textInverse} />
+          </TouchableOpacity>
         )}
 
         {/* Modals */}
@@ -1251,10 +1252,10 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
                       ]}
                     >
                       {cat}
-                  </Text>
+                    </Text>
                   </TouchableOpacity>
                 ))}
-                </View>
+              </View>
 
               <Text style={styles.modalLabel}>Descrição</Text>
               <TextInput
@@ -1269,7 +1270,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
               <TouchableOpacity style={styles.modalButton} onPress={addReminder}>
                 <Text style={styles.modalButtonText}>Adicionar</Text>
               </TouchableOpacity>
-              </View>
+            </View>
           </View>
         </Modal>
 
@@ -1316,10 +1317,10 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
                       ]}
                     >
                       {cat}
-                  </Text>
+                    </Text>
                   </TouchableOpacity>
                 ))}
-                </View>
+              </View>
 
               <Text style={styles.modalLabel}>Descrição</Text>
               <TextInput
@@ -1334,7 +1335,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
               <TouchableOpacity style={styles.modalButton} onPress={updateReminder}>
                 <Text style={styles.modalButtonText}>Salvar Alterações</Text>
               </TouchableOpacity>
-              </View>
+            </View>
           </View>
         </Modal>
 
@@ -1368,12 +1369,12 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
                   ].map((day) => {
                     const dayDate = new Date();
                     dayDate.setDate(dayDate.getDate() + day.value);
-                    const dayLabel = day.value === 0 
-                      ? 'Hoje' 
-                      : day.value === 1 
-                        ? 'Amanhã' 
+                    const dayLabel = day.value === 0
+                      ? 'Hoje'
+                      : day.value === 1
+                        ? 'Amanhã'
                         : format(dayDate, "dd/MM", { locale: ptBR });
-                    
+
                     return (
                       <TouchableOpacity
                         key={day.value}
@@ -1413,7 +1414,7 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
                   const now = new Date();
                   const currentHour = now.getHours();
                   const currentMinute = now.getMinutes();
-                  
+
                   let isTooClose = false;
                   if (selectedDay === 0) {
                     const hourTime = new Date();
@@ -1421,10 +1422,10 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
                     const minTime = new Date(now.getTime() + 15 * 60 * 1000);
                     isTooClose = hourTime.getTime() < minTime.getTime();
                   }
-                  
+
                   const isPast = selectedDay === 0 && hour <= currentHour;
                   const isDisabled = isPast || isTooClose;
-                  
+
                   return (
                     <TouchableOpacity
                       key={hour}
@@ -1450,8 +1451,8 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
                 })}
               </View>
 
-              <TouchableOpacity 
-                style={styles.modalButton} 
+              <TouchableOpacity
+                style={styles.modalButton}
                 onPress={() => handleTimeSelection(selectedHour, selectedDay)}
               >
                 <Text style={styles.modalButtonText}>Confirmar</Text>
@@ -1563,6 +1564,20 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
                   ios_backgroundColor={Colors.border}
                 />
               </View>
+
+              {notificationPreferences.whatsapp && (
+                <View style={styles.warningContainer}>
+                  <HugeIcon name="alert-circle" size={24} color="#F59E0B" />
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={styles.warningText}>
+                      Atenção: Para receber notificações, você precisa ter enviado uma mensagem para o nosso contato anteriormente.
+                    </Text>
+                    <TouchableOpacity onPress={() => Linking.openURL('https://api.whatsapp.com/send/?phone=5527992491404&text=Ol%C3%A1%21+Quero+testar+a+ION.&type=phone_number&app_absent=0')}>
+                      <Text style={styles.linkText}>Clique aqui para iniciar a conversa</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
             </View>
           </View>
         </Modal>
@@ -1573,19 +1588,19 @@ Responda APENAS com o número da hora (0-23), sem texto adicional.`;
 
 function getStyles(Colors: ReturnType<typeof useAppColors>) {
   return StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  header: {
+    container: {
+      flex: 1,
+    },
+    safeArea: {
+      flex: 1,
+    },
+    header: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-    paddingTop: 16,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
+      paddingTop: 16,
+      paddingBottom: 12,
+      paddingHorizontal: 16,
     },
     tabSelector: {
       flexDirection: 'row',
@@ -1594,8 +1609,8 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     },
     tabButton: {
       flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
       paddingVertical: 10,
@@ -1612,8 +1627,8 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     tabButtonText: {
       fontSize: 14,
       fontWeight: '600',
-    color: Colors.textSecondary,
-  },
+      color: Colors.textSecondary,
+    },
     tabButtonTextActive: {
       color: Colors.textInverse,
     },
@@ -1622,14 +1637,14 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
       height: 48,
       alignItems: 'center',
       justifyContent: 'center',
-  },
-  settingsButton: {
-    padding: 8,
-    borderRadius: 12,
-    backgroundColor: Colors.glassBackground,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-  },
+    },
+    settingsButton: {
+      padding: 8,
+      borderRadius: 12,
+      backgroundColor: Colors.glassBackground,
+      borderWidth: 1,
+      borderColor: Colors.glassBorder,
+    },
     listContent: {
       padding: 16,
       paddingBottom: 20,
@@ -1786,146 +1801,146 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
       fontSize: 14,
       fontWeight: 'bold',
       color: Colors.textPrimary,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  calendarContainer: {
-    borderRadius: 16,
-    padding: 8,
-    marginBottom: 24,
-    backgroundColor: Colors.glassBackground,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    overflow: 'hidden',
-  },
-  eventsContainer: {
-    marginTop: 8,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.textPrimary,
-    marginBottom: 16,
-  },
-  eventCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-    backgroundColor: Colors.glassBackground,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    overflow: 'hidden',
-  },
-  eventTime: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 12,
-    paddingRight: 12,
-    borderRightWidth: 1,
-    borderRightColor: Colors.border,
-  },
-  eventTimeText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.ionBlue,
-    marginLeft: 8,
-  },
-  eventContent: {
-    flex: 1,
-  },
-  eventTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  eventDescription: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: Colors.backgroundDark,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.textPrimary,
-  },
-  modalLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  modalDateText: {
-    fontSize: 16,
-    color: Colors.primary,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  modalInput: {
-    backgroundColor: Colors.backgroundDarkTertiary,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: Colors.textPrimary,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  modalTextArea: {
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  modalButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  modalButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.textInverse,
-  },
+    },
+    content: {
+      flex: 1,
+    },
+    contentContainer: {
+      padding: 16,
+      paddingBottom: 100,
+    },
+    calendarContainer: {
+      borderRadius: 16,
+      padding: 8,
+      marginBottom: 24,
+      backgroundColor: Colors.glassBackground,
+      borderWidth: 1,
+      borderColor: Colors.glassBorder,
+      overflow: 'hidden',
+    },
+    eventsContainer: {
+      marginTop: 8,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: Colors.textPrimary,
+      marginBottom: 16,
+    },
+    eventCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      padding: 16,
+      borderRadius: 16,
+      marginBottom: 12,
+      backgroundColor: Colors.glassBackground,
+      borderWidth: 1,
+      borderColor: Colors.glassBorder,
+      overflow: 'hidden',
+    },
+    eventTime: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginRight: 12,
+      paddingRight: 12,
+      borderRightWidth: 1,
+      borderRightColor: Colors.border,
+    },
+    eventTimeText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: Colors.ionBlue,
+      marginLeft: 8,
+    },
+    eventContent: {
+      flex: 1,
+    },
+    eventTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: Colors.textPrimary,
+      marginBottom: 4,
+    },
+    eventDescription: {
+      fontSize: 14,
+      color: Colors.textSecondary,
+    },
+    fab: {
+      position: 'absolute',
+      right: 20,
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: Colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: Colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: Colors.backgroundDark,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: 24,
+      paddingBottom: 40,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    modalTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: Colors.textPrimary,
+    },
+    modalLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: Colors.textPrimary,
+      marginBottom: 8,
+      marginTop: 16,
+    },
+    modalDateText: {
+      fontSize: 16,
+      color: Colors.primary,
+      fontWeight: '600',
+      marginBottom: 8,
+    },
+    modalInput: {
+      backgroundColor: Colors.backgroundDarkTertiary,
+      borderRadius: 12,
+      padding: 16,
+      fontSize: 16,
+      color: Colors.textPrimary,
+      borderWidth: 1,
+      borderColor: Colors.border,
+    },
+    modalTextArea: {
+      minHeight: 100,
+      textAlignVertical: 'top',
+    },
+    modalButton: {
+      backgroundColor: Colors.primary,
+      borderRadius: 16,
+      padding: 16,
+      alignItems: 'center',
+      marginTop: 24,
+    },
+    modalButtonText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: Colors.textInverse,
+    },
     categorySelector: {
       flexDirection: 'row',
       gap: 12,
@@ -2022,39 +2037,62 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     },
     timeButtonTextDisabled: {
       color: Colors.textSecondary,
-  },
-  settingsModalContent: {
-    backgroundColor: Colors.backgroundDark,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 32,
-  },
-  preferenceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-  },
-  preferenceInfo: {
-    flex: 1,
-    marginRight: 16,
-  },
-  preferenceTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  preferenceDescription: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginTop: 4,
-  },
-  preferenceDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
-    opacity: 0.6,
-    marginVertical: 8,
-  },
+    },
+    settingsModalContent: {
+      backgroundColor: Colors.backgroundDark,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: 24,
+      paddingBottom: 32,
+    },
+    preferenceItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+    },
+    preferenceInfo: {
+      flex: 1,
+      marginRight: 16,
+    },
+    preferenceTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: Colors.textPrimary,
+    },
+    preferenceDescription: {
+      fontSize: 14,
+      color: Colors.textSecondary,
+      marginTop: 4,
+    },
+    preferenceDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: Colors.border,
+      opacity: 0.6,
+      marginVertical: 8,
+    },
+    warningContainer: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 4,
+      marginBottom: 8,
+      padding: 12,
+      backgroundColor: 'rgba(245, 158, 11, 0.1)', // Amber/Orange tint
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(245, 158, 11, 0.3)',
+      alignItems: 'center',
+    },
+    warningText: {
+      fontSize: 13,
+      color: Colors.textSecondary,
+      lineHeight: 18,
+    },
+    linkText: {
+      fontSize: 13,
+      color: Colors.primary,
+      fontWeight: '600',
+      textDecorationLine: 'underline',
+    },
   });
 }

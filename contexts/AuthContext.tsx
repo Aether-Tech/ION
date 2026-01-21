@@ -12,9 +12,11 @@ import { auth } from '../services/firebase';
 import { usuariosService } from '../services/supabaseService';
 import { Usuario, supabase } from '../services/supabase';
 import { firestoreService } from '../services/firestoreService';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { GoogleAuthProvider, OAuthProvider, signInWithCredential } from 'firebase/auth';
 
 interface User {
-  phoneNumber: string;
+  phoneNumber?: string | null;
   usuarioId?: number;
   usuario?: Usuario;
   firebaseUser?: FirebaseUser;
@@ -25,10 +27,12 @@ interface AuthContextType {
   loading: boolean;
   needsOnboarding: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, displayName?: string) => Promise<void>;
-  completeOnboarding: (phoneNumber: string) => Promise<void>;
+  register: (email: string, password: string, phoneNumber: string | undefined, displayName?: string) => Promise<void>;
+  completeOnboarding: (phoneNumber?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
+  loginWithApple: (identityToken: string, nonce: string, fullName?: { givenName?: string | null, familyName?: string | null }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -117,16 +121,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setNeedsOnboarding(false);
         } else {
           // Usuário NÃO encontrado no Supabase (ou inativo)
-          console.log('Usuário não encontrado no Supabase ou inativo. Precisa de cadastro/onboarding.');
+          console.log('Usuário não encontrado no Supabase. Verificando necessidade de criação automática...');
 
-          const userData: User = {
-            phoneNumber: savedPhone || '',
-            firebaseUser,
-          };
+          // Se tivermos email (Google/Apple/EmailAuth), podemos criar automaticamente
+          if (firebaseUser.email) {
+            console.log('Criando usuário automaticamente pois temos email:', firebaseUser.email);
+            try {
+              const novoUsuario = await usuariosService.create({
+                nome: firebaseUser.displayName || 'Usuário',
+                email: firebaseUser.email,
+                celular: savedPhone || null, // Celular é opcional agora
+                status: 'ativo',
+                foto_perfil: firebaseUser.photoURL || null,
+              });
 
-          setUser(userData);
-          // Se não tem usuário no supabase, DEVE ir para onboarding/criação
-          setNeedsOnboarding(true);
+              if (novoUsuario) {
+                usuario = novoUsuario;
+
+                // Forçar atualização do user state
+                const userData: User = {
+                  phoneNumber: savedPhone || null,
+                  usuarioId: usuario.id,
+                  usuario,
+                  firebaseUser,
+                };
+
+                setUser(userData);
+                setNeedsOnboarding(false);
+              } else {
+                // Fallback se falhar criação
+                setUser({ phoneNumber: savedPhone || null, firebaseUser });
+                setNeedsOnboarding(true);
+              }
+            } catch (e) {
+              console.error('Erro na criação automática:', e);
+              setUser({ phoneNumber: savedPhone || null, firebaseUser });
+              setNeedsOnboarding(true);
+            }
+          } else {
+            // Se não tem email (muito raro hoje em dia), pede onboarding
+            const userData: User = {
+              phoneNumber: savedPhone || null,
+              firebaseUser,
+            };
+            setUser(userData);
+            setNeedsOnboarding(true);
+          }
         }
 
         setLoading(false);
@@ -168,7 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Registrar novo usuário com email e senha
-  const register = async (email: string, password: string, displayName?: string): Promise<void> => {
+  const register = async (email: string, password: string, phoneNumber?: string, displayName?: string): Promise<void> => {
     try {
       // Criar conta no Firebase (isso já faz login automático)
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -188,38 +228,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Criar perfil inicial no Firestore (sem telefone e sem completar onboarding)
-      // Isso garante que o usuário será redirecionado para o onboarding
-      // Se falhar, não bloquear o fluxo - vamos tratar manualmente
+      // Criar usuário no Supabase IMEDIATAMENTE
+      let usuario: Usuario | null = null;
+      try {
+        console.log('Criando usuário no Supabase com telefone:', phoneNumber);
+
+        // Verificar se já existe (raro, mas possível)
+        const existingByEmail = await usuariosService.getByEmail(email);
+        const existingByPhone = await usuariosService.getByCelular(phoneNumber);
+
+        if (existingByEmail) {
+          console.log('Usuário já existia por email (Supabase):', existingByEmail.id);
+          usuario = existingByEmail;
+          // Atualizar telefone se necessário
+          if (usuario && usuario.celular !== phoneNumber) {
+            await usuariosService.update(usuario.id, { celular: phoneNumber });
+            usuario.celular = phoneNumber;
+          }
+        } else if (existingByPhone) {
+          console.log('Usuário já existia por telefone (Supabase):', existingByPhone.id);
+          usuario = existingByPhone;
+          // Atualizar email se necessário (embora email seja unico...)
+        } else {
+          // Criar novo
+          usuario = await usuariosService.create({
+            nome: displayName || 'Usuário',
+            email: email,
+            celular: phoneNumber || null,
+            status: 'ativo',
+            foto_perfil: userCredential.user.photoURL || null,
+          });
+        }
+      } catch (supabaseError) {
+        console.error('Erro crítico ao criar usuário no Supabase:', supabaseError);
+        // Ainda não vamos falhar o registro inteiro, mas isso é grave
+      }
+
+      // Criar perfil inicial no Firestore COM telefone e onboarding COMPLETO
       try {
         const profileResult = await firestoreService.createOrUpdateUserProfile(userCredential.user, {
           email,
           displayName,
+          phoneNumber: phoneNumber || null,
+          hasCompletedOnboarding: true, // Já marcamos como completo pois pegamos o telefone no registro
         });
 
         if (!profileResult) {
           console.warn('⚠️ Perfil não foi criado no Firestore, mas continuando...');
         } else {
-          console.log('✅ Perfil criado no Firestore:', profileResult.hasCompletedOnboarding);
+          console.log('✅ Perfil criado no Firestore (com onboarding completo):', profileResult.hasCompletedOnboarding);
         }
       } catch (firestoreError: any) {
         console.warn('⚠️ Erro ao criar perfil no Firestore (não bloqueia o fluxo):', firestoreError);
-        // Não lançar erro - vamos tratar manualmente abaixo
       }
 
       // IMPORTANTE: Forçar atualização do estado imediatamente
-      // O onAuthStateChanged pode demorar, então vamos setar manualmente
       const userData: User = {
-        phoneNumber: '',
+        phoneNumber: phoneNumber || null,
+        usuarioId: usuario?.id,
+        usuario: usuario || undefined,
         firebaseUser: userCredential.user,
       };
+
       setUser(userData);
-      setNeedsOnboarding(true);
+      setNeedsOnboarding(false); // NÃO precisa mais de onboarding
       setLoading(false);
 
-      console.log('✅ Estado atualizado manualmente - redirecionando para onboarding');
+      if (userData.usuarioId) {
+        await AsyncStorage.setItem('user', JSON.stringify({
+          phoneNumber: userData.phoneNumber,
+          usuarioId: userData.usuarioId,
+        }));
+      }
 
-      // O onAuthStateChanged também vai ser acionado, mas já temos o estado correto
+      console.log('✅ Estado atualizado manualmente - redirecionando para app principal');
 
     } catch (error: any) {
       console.error('Error registering:', error);
@@ -238,7 +320,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Completar onboarding
-  const completeOnboarding = async (phoneNumber: string): Promise<void> => {
+  const completeOnboarding = async (phoneNumber?: string): Promise<void> => {
     try {
       if (!user?.firebaseUser) {
         throw new Error('Usuário não autenticado');
@@ -250,8 +332,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 1. Verificar se já existe usuário no Supabase com esse email
       let usuario = await usuariosService.getByEmail(email);
 
-      // 2. Se não existe por email, verificar por telefone (para evitar duplicação se ele já existia mas mudou email no firebase - raro, mas possível)
-      if (!usuario) {
+      // 2. Se não existe por email, verificar por telefone SE fornecido
+      if (!usuario && phoneNumber) {
         usuario = await usuariosService.getByCelular(phoneNumber);
       }
 
@@ -261,14 +343,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         usuario = await usuariosService.create({
           nome: user.firebaseUser.displayName || 'Usuário',
           email: email,
-          celular: phoneNumber,
+          celular: phoneNumber || null,
           status: 'ativo',
           foto_perfil: user.firebaseUser.photoURL || null,
         });
       } else {
         console.log('Usuário já existe no Supabase, atualizando dados se necessário...');
         // Opcional: Atualizar celular se mudou?
-        if (usuario.celular !== phoneNumber) {
+        // Opcional: Atualizar celular se mudou e foi fornecido novo
+        if (phoneNumber && usuario.celular !== phoneNumber) {
           await usuariosService.update(usuario.id, { celular: phoneNumber });
           usuario.celular = phoneNumber;
         }
@@ -281,7 +364,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Atualizar perfil no Firestore para ficar sincronizado
       await firestoreService.completeOnboarding(
         user.firebaseUser.uid,
-        phoneNumber
+        phoneNumber || null
       );
 
       const userData: User = {
@@ -300,10 +383,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     } catch (error) {
       console.error('Error completing onboarding:', error);
+      // Se falhar o onboarding, deslogar o usuário para ele tentar novamente limpo
+      // Isso evita que ele fique preso na tela de onboarding com um usuário bugado
+      try {
+        await logout();
+      } catch (logoutError) {
+        console.warn('Erro ao deslogar após falha no onboarding:', logoutError);
+      }
       throw error;
     }
   };
 
+
+
+  const loginWithGoogle = async (idToken: string) => {
+    try {
+      const credential = GoogleAuthProvider.credential(idToken);
+      const userCredential = await signInWithCredential(auth, credential);
+      console.log('Google Sign-In successful:', userCredential.user.uid);
+      // onAuthStateChanged will handle the rest
+    } catch (error: any) {
+      console.error('Error logging in with Google:', error);
+      throw error;
+    }
+  };
+
+  const loginWithApple = async (identityToken: string, nonce: string, fullName?: { givenName?: string | null, familyName?: string | null }) => {
+    try {
+      const provider = new OAuthProvider('apple.com');
+      const credential = provider.credential({
+        idToken: identityToken,
+        rawNonce: nonce,
+      });
+
+      const userCredential = await signInWithCredential(auth, credential);
+      console.log('Apple Sign-In successful:', userCredential.user.uid);
+
+      if (fullName?.givenName || fullName?.familyName) {
+        try {
+          const displayName = [fullName.givenName, fullName.familyName].filter(Boolean).join(' ');
+          if (displayName) {
+            await updateProfile(userCredential.user, { displayName });
+          }
+        } catch (e) {
+          console.warn('Error updating profile name from Apple:', e);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error logging in with Apple:', error);
+      throw error;
+    }
+  };
 
   const logout = async () => {
     try {
@@ -343,6 +473,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       register,
       completeOnboarding,
+      loginWithGoogle,
+      loginWithApple,
       logout,
       refreshUser
     }}>

@@ -2,9 +2,9 @@
   "expo": {
     "name": "ION",
     "slug": "ion-app",
-    "version": "1.0.0",
+    "version": "1.0.6",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/IONlogoNova.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
@@ -20,17 +20,19 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/IONlogoNova.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.aether.ion.app",
+      "versionCode": 15,
       "permissions": [
         "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "com.android.vending.BILLING"
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/IONlogoNova.png"
     },
     "plugins": [
       "expo-router",
@@ -47,7 +49,25 @@
         {
           "microphonePermission": "Precisamos de acesso ao microfone para gravar mensagens de áudio."
         }
-      ]
+      ],
+      "react-native-iap",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.0.21",
+            "gradleChildHeapSize": "4g",
+            "packagingOptions": {
+              "pickFirst": [
+                "lib/**/libreact_native_all.so",
+                "lib/**/libfbjni.so"
+              ]
+            }
+          }
+        }
+      ],
+      "expo-web-browser",
+      "expo-apple-authentication"
     ],
     "scheme": "ion",
     "extra": {

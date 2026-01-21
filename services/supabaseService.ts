@@ -3,7 +3,7 @@ import { supabase, Usuario, Transacao, CategoriaTransacao, ToDo, Lembrete, ItemC
 // Serviços para Usuarios
 export const usuariosService = {
   // Buscar usuário por celular
-  getByCelular: async (celular: string): Promise<Usuario | null> => {
+  getByCelular: async (celular?: string | null): Promise<Usuario | null> => {
     if (!celular) return null;
     try {
       const { data, error } = await supabase

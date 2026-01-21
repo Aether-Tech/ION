@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,10 +19,14 @@ import { useAppColors } from '../hooks/useAppColors';
 import { IONLogo } from '../components/IONLogo';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Google from 'expo-auth-session/providers/google';
+import * as Crypto from 'expo-crypto';
 
 export default function RegisterScreen() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,9 +35,67 @@ export default function RegisterScreen() {
   const [success, setSuccess] = useState(false);
 
   const router = useRouter();
-  const { register } = useAuth();
+  const { register, loginWithGoogle, loginWithApple } = useAuth();
   const Colors = useAppColors();
   const styles = getStyles(Colors);
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      if (id_token) {
+        setLoading(true);
+        loginWithGoogle(id_token)
+          .then(() => {
+            setSuccess(true);
+            setTimeout(() => router.replace('/'), 2000);
+          })
+          .catch((error) => {
+            setLoading(false);
+            Alert.alert('Erro', 'Falha no cadastro com Google');
+          });
+      }
+    }
+  }, [response]);
+
+  const handleAppleLogin = async () => {
+    try {
+      const nonce = Math.random().toString(36).substring(2, 10);
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        nonce
+      );
+
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+
+      const { identityToken, fullName } = credential;
+      if (identityToken) {
+        setLoading(true);
+        await loginWithApple(identityToken, nonce, fullName ?? undefined);
+        setSuccess(true);
+        setTimeout(() => router.replace('/'), 2000);
+      }
+    } catch (e: any) {
+      setLoading(false);
+      if (e.code === 'ERR_REQUEST_CANCELED') {
+        // user canceled
+      } else {
+        Alert.alert('Erro', 'Falha no cadastro com Apple');
+      }
+    }
+  };
+
 
   const handleRegister = async () => {
     if (!nome.trim()) {
@@ -44,6 +106,19 @@ export default function RegisterScreen() {
     if (!email.trim()) {
       Alert.alert('Erro', 'Por favor, insira seu email');
       return;
+    }
+
+    // Validar formato básico do telefone SE informado
+    let normalizedPhone = '';
+    const digitsOnly = phoneNumber.replace(/\D/g, '');
+
+    if (phoneNumber.trim()) {
+      const localNumber = digitsOnly.startsWith('55') ? digitsOnly.slice(2) : digitsOnly;
+      if (localNumber.length < 10) {
+        Alert.alert('Erro', 'Por favor, insira um número de telefone válido ou deixe em branco');
+        return;
+      }
+      normalizedPhone = digitsOnly.startsWith('55') ? digitsOnly : `55${digitsOnly}`;
     }
 
     if (!password.trim()) {
@@ -68,22 +143,16 @@ export default function RegisterScreen() {
       return;
     }
 
-    setLoading(true);
     try {
-      await register(normalizedEmail, password, nome.trim());
-      
-      // Mostrar feedback de sucesso
+      await register(normalizedEmail, password, normalizedPhone || undefined, nome.trim());
+
+      // Mostrar feedback de sucesso e redirecionar
       setSuccess(true);
-      
-      // Timeout de segurança: se após 3 segundos não redirecionou, forçar redirecionamento
+
       setTimeout(() => {
-        // Verificar se ainda está na tela de registro (não redirecionou)
-        // Se sim, forçar redirecionamento para index que vai decidir o destino
         router.replace('/');
-      }, 3000);
-      
-      // O redirecionamento será feito automaticamente pelo index.tsx
-      // O onAuthStateChanged vai detectar o novo usuário e redirecionar para onboarding
+      }, 2000);
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro ao criar a conta. Tente novamente mais tarde.';
       Alert.alert('Erro no cadastro', errorMessage);
@@ -151,6 +220,21 @@ export default function RegisterScreen() {
                 />
               </BlurView>
 
+              <Text style={styles.label}>WhatsApp / Celular (Opcional)</Text>
+              <BlurView intensity={20} style={styles.inputContainer}>
+                <HugeIcon name="call-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex: 27999999999"
+                  placeholderTextColor={Colors.textSecondary}
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  keyboardType="phone-pad"
+                  autoComplete="tel"
+                  textContentType="telephoneNumber"
+                />
+              </BlurView>
+
               <Text style={styles.label}>Senha</Text>
               <BlurView intensity={20} style={styles.inputContainer}>
                 <HugeIcon name="lock-closed-outline" size={24} color={Colors.primary} style={styles.inputIcon} />
@@ -168,11 +252,11 @@ export default function RegisterScreen() {
                   onPress={() => setShowPassword(!showPassword)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={24}
-                  color={Colors.textSecondary}
-                />
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={24}
+                    color={Colors.textSecondary}
+                  />
                 </TouchableOpacity>
               </BlurView>
 
@@ -193,11 +277,11 @@ export default function RegisterScreen() {
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                <Ionicons
-                  name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={24}
-                  color={Colors.textSecondary}
-                />
+                  <Ionicons
+                    name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={24}
+                    color={Colors.textSecondary}
+                  />
                 </TouchableOpacity>
               </BlurView>
 
@@ -229,6 +313,32 @@ export default function RegisterScreen() {
                 <Text style={styles.secondaryButtonText}>Já tenho uma conta</Text>
               </TouchableOpacity>
             </View>
+
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>ou</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <View style={styles.socialButtonsContainer}>
+              <TouchableOpacity
+                style={[styles.socialButton, styles.googleButton]}
+                onPress={() => promptAsync()}
+                disabled={loading || success}
+              >
+                <Ionicons name="logo-google" size={24} color="#DB4437" />
+                <Text style={[styles.socialButtonText, { color: '#DB4437' }]}>Google</Text>
+              </TouchableOpacity>
+
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN} // Use SIGN_IN for consistency, they might already have an account
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                cornerRadius={16}
+                style={styles.appleButton}
+                onPress={handleAppleLogin}
+              />
+            </View>
+
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>
@@ -381,6 +491,48 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
       fontSize: 12,
       color: Colors.textTertiary,
       textAlign: 'center',
+    },
+
+    dividerContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: 24,
+      gap: 16,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: Colors.glassBorder,
+    },
+    dividerText: {
+      fontSize: 14,
+      color: Colors.textSecondary,
+    },
+    socialButtonsContainer: {
+      gap: 12,
+      width: '100%',
+    },
+    socialButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 12,
+      height: 56,
+      borderRadius: 16,
+      backgroundColor: Colors.glassBackground,
+      borderWidth: 1,
+      borderColor: Colors.glassBorder,
+    },
+    googleButton: {
+      backgroundColor: '#FFFFFF',
+    },
+    socialButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    appleButton: {
+      width: '100%',
+      height: 56,
     },
   });
 }

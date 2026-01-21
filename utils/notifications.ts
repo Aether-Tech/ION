@@ -1,15 +1,18 @@
 import { Platform } from 'react-native';
 
-let Notifications: any;
-if (Platform.OS !== 'android') {
-  try {
-    Notifications = require('expo-notifications');
-  } catch (error) {
-    console.warn('Erro ao carregar expo-notifications:', error);
-  }
-}
-
 const WEBHOOK_URL = 'https://n8n.goaether.xyz/webhook/a90d5230-303e-4814-aa31-1210573f6eeb';
+
+let Notifications: any;
+try {
+  if (Platform.OS !== 'android') {
+    // Only require expo-notifications on non-android (or handled by managed workflow?)
+    // Actually, expo-notifications works on both. The original code had a check.
+    // Let's assume it's safe to require if likely managed.
+    Notifications = require('expo-notifications');
+  }
+} catch (e) {
+  console.warn('Notifications module not available:', e);
+}
 
 const timeoutMap = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -123,11 +126,6 @@ export interface ReminderSyncOptions {
   webhookEnabled?: boolean;
 }
 
-export function syncReminderNotifications(reminders: ReminderNotification[]): Promise<void>;
-export function syncReminderNotifications(
-  reminders: ReminderNotification[],
-  options: ReminderSyncOptions
-): Promise<void>;
 export async function syncReminderNotifications(
   reminders: ReminderNotification[],
   options?: ReminderSyncOptions
@@ -165,7 +163,7 @@ export async function syncReminderNotifications(
             sound: 'default',
             data: { reminderId: reminder.id },
           },
-          trigger,
+          trigger: trigger as any, // Cast to any to avoid type mismatch if NotificationTriggerInput is strict
         });
       }
 
@@ -193,4 +191,16 @@ export const cancelReminderNotification = async (reminderId: string) => {
   }
 };
 
-
+export const setupNotifications = () => {
+  if (Notifications) {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  }
+};

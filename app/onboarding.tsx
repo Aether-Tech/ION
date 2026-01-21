@@ -9,7 +9,7 @@ export default function OnboardingScreen() {
   const { completeOnboarding } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  const handleComplete = async (phoneNumber: string) => {
+  const handleComplete = async (phoneNumber?: string) => {
     setLoading(true);
     try {
       await completeOnboarding(phoneNumber);
