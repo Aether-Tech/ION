@@ -32,7 +32,7 @@ export const usuariosService = {
   getByEmail: async (email: string): Promise<Usuario | null> => {
     if (!email) return null;
     try {
-      const { data, error } = await supabase
+      const { data, error, status, statusText } = await supabase
         .from('usuarios')
         .select('*')
         .eq('email', email)
@@ -40,7 +40,8 @@ export const usuariosService = {
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching user by email:', error);
+        console.error('Error fetching user by email:', JSON.stringify(error, null, 2));
+        console.error('Supabase response status:', status, statusText);
         return null;
       }
       return data;
@@ -67,14 +68,17 @@ export const usuariosService = {
 
   // Criar novo usuário
   create: async (usuario: Omit<Usuario, 'id' | 'created_at'>): Promise<Usuario | null> => {
-    const { data, error } = await supabase
+    console.log('Creating user with data:', JSON.stringify(usuario, null, 2));
+    const { data, error, status, statusText } = await supabase
       .from('usuarios')
       .insert([usuario])
       .select()
       .single();
 
     if (error) {
-      console.error('Error creating user:', error);
+      console.error('Error creating user:', JSON.stringify(error, null, 2));
+      console.error('Supabase response status:', status, statusText);
+      console.error('Error details - code:', error.code, 'message:', error.message, 'hint:', error.hint);
       return null;
     }
     return data;

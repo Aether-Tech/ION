@@ -104,7 +104,7 @@ export function WelcomeIntro() {
             <View style={styles.header}>
                 <TouchableOpacity style={styles.skipButton} onPress={handleLogin}>
                     <Text style={styles.skipButtonText}>Entrar</Text>
-                    <HugeIcon name="arrow-right-01" size={16} color={Colors.primary} strokeWidth={2} />
+                    <HugeIcon name="chevron-forward" size={16} color={Colors.primary} strokeWidth={2} />
                 </TouchableOpacity>
             </View>
 
@@ -166,7 +166,7 @@ export function WelcomeIntro() {
                                 onPress={handleRegister}
                             >
                                 <Text style={styles.primaryButtonText}>Criar conta</Text>
-                                <HugeIcon name="user-add" size={20} color={Colors.textInverse} strokeWidth={2} />
+                                <HugeIcon name="add-circle" size={20} color={Colors.textInverse} strokeWidth={2} />
                             </TouchableOpacity>
 
                             <TouchableOpacity

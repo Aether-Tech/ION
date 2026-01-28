@@ -7,7 +7,8 @@ const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 console.log('Supabase config', {
   url: SUPABASE_URL,
-  anonKeyPreview: SUPABASE_ANON_KEY ? `${SUPABASE_ANON_KEY.slice(0, 6)}...` : '',
+  anonKeyPreview: SUPABASE_ANON_KEY ? `${SUPABASE_ANON_KEY.slice(0, 6)}...${SUPABASE_ANON_KEY.slice(-10)}` : '',
+  anonKeyLength: SUPABASE_ANON_KEY?.length || 0,
 });
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -15,6 +16,26 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 }
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Testar conexão com Supabase
+const testSupabaseConnection = async () => {
+  try {
+    const { data, error, status } = await supabase.from('usuarios').select('count').limit(1);
+    if (error) {
+      console.error('❌ Supabase connection test FAILED:', JSON.stringify(error, null, 2));
+      console.error('Status:', status);
+      if (error.code === '42501' || error.message?.includes('permission')) {
+        console.error('💡 HINT: Isso parece ser um problema de RLS. Verifique as políticas da tabela "usuarios" no Supabase.');
+      }
+    } else {
+      console.log('✅ Supabase connection test PASSED');
+    }
+  } catch (e) {
+    console.error('❌ Supabase connection exception:', e);
+  }
+};
+
+testSupabaseConnection();
 
 // Tipos baseados nas tabelas do banco de dados
 export interface Usuario {

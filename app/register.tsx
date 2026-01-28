@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -341,9 +342,11 @@ export default function RegisterScreen() {
 
 
             <View style={styles.footer}>
-              <Text style={styles.footerText}>
-                Ao criar uma conta, você concorda com nossos Termos e Política de Privacidade.
-              </Text>
+              <TouchableOpacity onPress={() => Linking.openURL('https://ion.goaether.com.br/terms')}>
+                <Text style={styles.footerText}>
+                  Ao criar uma conta, você concorda com nossos <Text style={{ textDecorationLine: 'underline' }}>Termos</Text> e <Text style={{ textDecorationLine: 'underline' }} onPress={() => Linking.openURL('https://ion.goaether.com.br/privacy-policy')}>Política de Privacidade</Text>.
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>

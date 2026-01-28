@@ -9,6 +9,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -266,9 +267,13 @@ export default function LoginScreen() {
               Ao continuar, você concorda com nossos
             </Text>
             <View style={styles.footerLinks}>
-              <Text style={styles.footerLink}>Termos e Condições</Text>
+              <TouchableOpacity onPress={() => Linking.openURL('https://ion.goaether.com.br/terms')}>
+                <Text style={styles.footerLink}>Termos e Condições</Text>
+              </TouchableOpacity>
               <Text style={styles.footerText}> e </Text>
-              <Text style={styles.footerLink}>Política de Privacidade</Text>
+              <TouchableOpacity onPress={() => Linking.openURL('https://ion.goaether.com.br/privacy-policy')}>
+                <Text style={styles.footerLink}>Política de Privacidade</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -474,4 +479,3 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     },
   });
 }
-
