@@ -2,7 +2,7 @@
   "expo": {
     "name": "ION",
     "slug": "ion-app",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/IONlogoNova.png",
     "userInterfaceStyle": "light",
@@ -24,7 +24,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.aether.ion.app",
-      "versionCode": 15,
+      "versionCode": 16,
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",

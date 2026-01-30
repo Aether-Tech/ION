@@ -42,6 +42,8 @@ import {
   Logout01Icon,
   Mic01Icon,
   SentIcon,
+  SparklesIcon,
+  StarIcon,
 } from '@hugeicons/core-free-icons';
 
 interface HugeIconProps {
@@ -105,12 +107,14 @@ const iconMap: { [key: string]: any } = {
   'help-circle-outline': BulbIcon, // Usando BulbIcon como fallback
   'document-text-outline': File01Icon,
   'log-out-outline': Logout01Icon,
-  'sparkles': ArrowDataTransferVerticalIcon, // Ícone de reorganizar - usando ArrowDataTransferVertical
+
   'copy-outline': File01Icon, // Ícone de copiar - usando File
   'copy': File01Icon, // Ícone de copiar - usando File
   'list': ShoppingCart01Icon, // Ícone de lista - usando ShoppingCart
   'list-outline': ShoppingCart01Icon, // Ícone de lista - usando ShoppingCart
   'send': SentIcon,
+  'arrow-right-01': ArrowRight01Icon,
+  'sparkles': SparklesIcon || StarIcon || BulbIcon, // Tenta Sparkles, senão Star, senão Bulb
 };
 
 // Componente que renderiza ícones do Hugeicons usando o pacote oficial gratuito

@@ -110,10 +110,7 @@ export function Onboarding({ onComplete, loading = false }: OnboardingProps) {
       {/* Header com botão de Entrar/Sair */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerButton} onPress={() => {
-          // Se estivermos em um contexto onde router.replace existe (dentro de app/), podemos navegar
-          // Caso contrário, precisamos passar uma prop onLogin ou similar
-          // Como Onboarding é usado em app/onboarding.tsx que tem router, vamos assumir que o pai lida ou usamos router aqui se importarmos
-          import('expo-router').then(({ router }) => router.replace('/login'));
+          router.replace('/login');
         }}>
           <Text style={styles.headerButtonText}>Já tenho conta</Text>
           <HugeIcon name="arrow-right-01" size={16} color={Colors.primary} strokeWidth={2} />
