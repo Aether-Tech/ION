@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
 import { User as FirebaseUser } from 'firebase/auth';
 
@@ -51,7 +51,7 @@ export const firestoreService = {
         });
       } else {
         // Atualizar perfil existente
-        await updateDoc(userRef, userData);
+        await setDoc(userRef, userData, { merge: true });
       }
 
       // Retornar dados atualizados
@@ -83,10 +83,10 @@ export const firestoreService = {
   updatePhoneNumber: async (uid: string, phoneNumber: string | null): Promise<boolean> => {
     try {
       const userRef = doc(db, 'users', uid);
-      await updateDoc(userRef, {
+      await setDoc(userRef, {
         phoneNumber,
         updatedAt: serverTimestamp(),
-      });
+      }, { merge: true });
       return true;
     } catch (error) {
       console.error('Error updating phone number:', error);
@@ -98,11 +98,12 @@ export const firestoreService = {
   completeOnboarding: async (uid: string, phoneNumber: string | null): Promise<boolean> => {
     try {
       const userRef = doc(db, 'users', uid);
-      await updateDoc(userRef, {
+      await setDoc(userRef, {
+        uid,
         phoneNumber,
         hasCompletedOnboarding: true,
         updatedAt: serverTimestamp(),
-      });
+      }, { merge: true });
       return true;
     } catch (error) {
       console.error('Error completing onboarding:', error);

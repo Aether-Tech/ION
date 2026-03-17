@@ -16,17 +16,16 @@ export default function SubscriptionScreen() {
         products,
         requestSubscription,
         restorePurchases,
-        simulateSubscription
     } = useSubscription();
 
     const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
 
     useEffect(() => {
-        if (isSubscribed) {
-            Alert.alert('Sucesso', 'Assinatura ativa! Redirecionando...');
+        // Aguardar verificação completa antes de redirecionar para evitar flash/crash
+        if (!isLoading && isSubscribed) {
             router.replace('/(tabs)/chat');
         }
-    }, [isSubscribed]);
+    }, [isSubscribed, isLoading]);
 
     const handleSubscribe = async () => {
         const skuConfig = {
@@ -36,23 +35,17 @@ export default function SubscriptionScreen() {
 
         const targetSku = skuConfig[selectedPlan];
 
-        // Find the actual product object if available
-        const product = products.find(p => p.productId === targetSku);
+        // v14: produtos usam campo 'id', não 'productId'
+        const product = products.find(p => (p.id === targetSku) || (p.productId === targetSku));
 
         if (product) {
-            await requestSubscription(product.productId);
+            // Usar p.id (v14) com fallback para p.productId (versões antigas)
+            await requestSubscription(product.id || product.productId);
         } else {
-            // Fallback for when no products are loaded (e.g. Emulator)
             Alert.alert(
-                'Modo de Desenvolvimento',
-                `Nenhum produto encontrado da loja para o plano ${selectedPlan === 'monthly' ? 'Mensal' : 'Anual'} (provavelmente rodando no emulador). Deseja simular uma assinatura bem-sucedida?`,
-                [
-                    { text: 'Cancelar', style: 'cancel' },
-                    {
-                        text: 'Simular Assinatura',
-                        onPress: () => simulateSubscription(true)
-                    }
-                ]
+                'Indisponível',
+                'Não foi possível carregar os planos de assinatura. Verifique sua conexão com a internet e tente novamente.',
+                [{ text: 'OK' }]
             );
         }
     };
@@ -67,9 +60,10 @@ export default function SubscriptionScreen() {
     };
 
     // Helper to get price string safely
+    // v14: produtos usam 'id', mas mantemos fallback para 'productId'
     const getPrice = (sku: string, defaultPrice: string) => {
-        const product = products.find(p => p.productId === sku);
-        return product ? (product as any).localizedPrice || (product as any).price : defaultPrice;
+        const product = products.find(p => (p.id === sku) || (p.productId === sku));
+        return product ? (product as any).displayPrice || (product as any).localizedPrice || (product as any).price || defaultPrice : defaultPrice;
     };
 
     const monthlyPrice = getPrice('ion_premium_monthly', 'R$ 49,90');

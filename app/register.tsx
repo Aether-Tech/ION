@@ -36,9 +36,16 @@ export default function RegisterScreen() {
   const [success, setSuccess] = useState(false);
 
   const router = useRouter();
-  const { register, loginWithGoogle, loginWithApple } = useAuth();
+  const { register, loginWithGoogle, loginWithApple, user, loading: authLoading } = useAuth();
   const Colors = useAppColors();
   const styles = getStyles(Colors);
+
+  // Redirecionar quando registro/login social for concluído (igual ao login.tsx)
+  useEffect(() => {
+    if (success && !authLoading && user) {
+      router.replace('/');
+    }
+  }, [success, user, authLoading, router]);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
@@ -54,7 +61,7 @@ export default function RegisterScreen() {
         loginWithGoogle(id_token)
           .then(() => {
             setSuccess(true);
-            setTimeout(() => router.replace('/'), 2000);
+            // Navegação feita pelo useEffect de estado (success + user + !authLoading)
           })
           .catch((error) => {
             setLoading(false);
@@ -66,7 +73,8 @@ export default function RegisterScreen() {
 
   const handleAppleLogin = async () => {
     try {
-      const nonce = Math.random().toString(36).substring(2, 10);
+      const nonceBytes = await Crypto.getRandomBytesAsync(32);
+      const nonce = Array.from(new Uint8Array(nonceBytes)).map(b => b.toString(16).padStart(2, '0')).join('');
       const hashedNonce = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
         nonce
@@ -85,7 +93,7 @@ export default function RegisterScreen() {
         setLoading(true);
         await loginWithApple(identityToken, nonce, fullName ?? undefined);
         setSuccess(true);
-        setTimeout(() => router.replace('/'), 2000);
+        // Navegação feita pelo useEffect de estado (success + user + !authLoading)
       }
     } catch (e: any) {
       setLoading(false);
@@ -144,15 +152,12 @@ export default function RegisterScreen() {
       return;
     }
 
+    setLoading(true);
     try {
       await register(normalizedEmail, password, normalizedPhone || undefined, nome.trim());
 
-      // Mostrar feedback de sucesso e redirecionar
+      // Mostrar feedback de sucesso - navegação feita pelo useEffect de estado
       setSuccess(true);
-
-      setTimeout(() => {
-        router.replace('/');
-      }, 2000);
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro ao criar a conta. Tente novamente mais tarde.';
@@ -331,13 +336,15 @@ export default function RegisterScreen() {
                 <Text style={[styles.socialButtonText, { color: '#DB4437' }]}>Google</Text>
               </TouchableOpacity>
 
-              <AppleAuthentication.AppleAuthenticationButton
-                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN} // Use SIGN_IN for consistency, they might already have an account
-                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                cornerRadius={16}
-                style={styles.appleButton}
-                onPress={handleAppleLogin}
-              />
+              {Platform.OS === 'ios' && (
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                  cornerRadius={16}
+                  style={styles.appleButton}
+                  onPress={handleAppleLogin}
+                />
+              )}
             </View>
 
 

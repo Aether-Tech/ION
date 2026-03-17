@@ -5,11 +5,12 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
-console.log('Supabase config', {
-  url: SUPABASE_URL,
-  anonKeyPreview: SUPABASE_ANON_KEY ? `${SUPABASE_ANON_KEY.slice(0, 6)}...${SUPABASE_ANON_KEY.slice(-10)}` : '',
-  anonKeyLength: SUPABASE_ANON_KEY?.length || 0,
-});
+if (__DEV__) {
+  console.log('Supabase config', {
+    url: SUPABASE_URL,
+    hasAnonKey: !!SUPABASE_ANON_KEY,
+  });
+}
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.warn('⚠️ Supabase credentials not configured. Please set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY');

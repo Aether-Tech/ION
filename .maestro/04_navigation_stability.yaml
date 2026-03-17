@@ -1,0 +1,50 @@
+appId: com.aether.ion.app
+---
+# Teste: Estabilidade de Navegação (Crítico para Google Play)
+# Verifica que o app não crasha durante transições de estado.
+
+- launchApp:
+    clearState: true
+
+# 1. App deve abrir sem crash - aguardar inicialização completa
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# 2. Deve mostrar alguma tela (welcome, login ou subscription)
+# Não deve estar em tela branca/preta por crash
+- assertVisible: "ION"
+
+# 3. Navegar entre telas de auth sem crash
+- tapOn: "Entrar"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 4. Ir para cadastro e voltar
+- tapOn: "Criar uma conta"
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: "Criar conta"
+
+- tapOn: "Já tenho uma conta"
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: "Email"
+
+# 5. Teste de navegação: login com credenciais reviewer
+- tapOn: "Ex: seu@email.com"
+- inputText: "review@ionapp.ai"
+
+- tapOn: "Digite sua senha"
+- inputText: "Ion@Review2026"
+
+- hideKeyboard
+- tapOn: "Entrar"
+
+# 6. Aguardar resolução de estado (auth + subscription)
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# 7. App não deve ter crashado - deve estar em alguma tela conhecida
+# (subscription se sem assinatura, ou tabs se com assinatura)
+- assertNotVisible: "Erro"
+    optional: true

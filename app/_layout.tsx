@@ -50,28 +50,22 @@ function RootLayoutNav() {
 
     // Normalizar segmentos para facilitar verificação
     const inAuthGroup = segments[0] === '(tabs)';
-    const inSubscription = segments[0] === 'subscription';
     const inPublicGroup = ['welcome', 'login', 'register', 'onboarding'].includes(segments[0] || '');
 
-    // 1. Se não tem usuário e tenta acessar rota protegida (tabs ou subscription), manda para welcome
-    // (Mas permitimos welcome/login/register)
+    // Quando segments[0] é undefined (root index '/'), o index.tsx já cuida do roteamento.
+    // Só intervir em rotas específicas para evitar dupla-navegação que causa crashes.
+    const atRoot = !segments[0];
+    if (atRoot) return;
+
+    // 1. Se não tem usuário e tenta acessar rota protegida (tabs), manda para welcome
     if (!user && !inPublicGroup) {
-      // Se estiver na raiz ou tentando acessar tabs sem user -> login/welcome
-      // router.replace('/welcome'); 
-      // Deixamos o index.tsx ou logic interna cuidar disso para nao conflitar, 
-      // MAS o usuario pediu checagem "estrito".
-      // Vamos focar no Subscription Check que é o pedido principal.
+      router.replace('/welcome');
+      return;
     }
 
-    // 2. CHECK DE ASSINATURA (O Pedido do Usuário)
-    // Se tem usuário, mas não tem assinatura...
-    if (user && !isSubscribed) {
-      // Se ele NÃO está na tela de subscription E nem nas telas de auth (ex: onboarding ou algo assim)
-      // Precisamos bloquear acesso a (tabs) e qualquer outra coisa.
-      if (inAuthGroup || (segments.length === 0 /* index */)) {
-        // Redireciona para subscription
-        router.replace('/subscription');
-      }
+    // 2. Se tem usuário mas não tem assinatura e tenta acessar tabs diretamente (deep link)
+    if (user && !isSubscribed && inAuthGroup) {
+      router.replace('/subscription');
     }
   }, [user, isSubscribed, segments, authLoading, subLoading]);
 

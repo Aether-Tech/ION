@@ -1,0 +1,2 @@
+# Result of finding .env files
+To verify environment variables, please list any files named `.env`, `.env.local`, `.env.production` if they exist.

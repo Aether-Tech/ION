@@ -68,7 +68,7 @@ export const usuariosService = {
 
   // Criar novo usuário
   create: async (usuario: Omit<Usuario, 'id' | 'created_at'>): Promise<Usuario | null> => {
-    console.log('Creating user with data:', JSON.stringify(usuario, null, 2));
+    __DEV__ && console.log('Creating user with data:', JSON.stringify(usuario, null, 2));
     const { data, error, status, statusText } = await supabase
       .from('usuarios')
       .insert([usuario])

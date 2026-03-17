@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -58,7 +58,8 @@ export default function LoginScreen() {
 
   const handleAppleLogin = async () => {
     try {
-      const nonce = Math.random().toString(36).substring(2, 10);
+      const nonceBytes = await Crypto.getRandomBytesAsync(32);
+      const nonce = Array.from(new Uint8Array(nonceBytes)).map(b => b.toString(16).padStart(2, '0')).join('');
       const hashedNonce = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
         nonce
@@ -92,10 +93,7 @@ export default function LoginScreen() {
   // Redirecionar quando o usuário for autenticado
   useEffect(() => {
     if (success && !authLoading && user) {
-      console.log('Login bem-sucedido, redirecionando...', {
-        needsOnboarding,
-        hasUsuario: !!user.usuario,
-      });
+      __DEV__ && console.log('Login bem-sucedido, redirecionando...');
       setLoading(false); // Desabilitar loading antes de redirecionar
 
       // Sempre redirecionar para o index ('/') para que ele decida o destino
@@ -252,13 +250,15 @@ export default function LoginScreen() {
                 <Text style={[styles.socialButtonText, { color: '#DB4437' }]}>Google</Text>
               </TouchableOpacity>
 
-              <AppleAuthentication.AppleAuthenticationButton
-                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                cornerRadius={16}
-                style={styles.appleButton}
-                onPress={handleAppleLogin}
-              />
+              {Platform.OS === 'ios' && (
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                  cornerRadius={16}
+                  style={styles.appleButton}
+                  onPress={handleAppleLogin}
+                />
+              )}
             </View>
           </View>
 

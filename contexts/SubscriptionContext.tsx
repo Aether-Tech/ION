@@ -1,28 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Platform, Alert } from 'react-native';
-// Safe import for IAP to avoid crashes if native modules are missing
-let RNIap: any;
-try {
-    RNIap = require('react-native-iap');
-} catch (err) {
-    console.warn('RNIap could not be loaded (missing native modules?):', err);
-    // Mock implementation
-    RNIap = {
-        initConnection: async () => { console.log('Mock IAP: initConnection'); return true; },
-        endConnection: async () => { console.log('Mock IAP: endConnection'); },
-        getProducts: async () => [],
-        getSubscriptions: async () => [],
-        getAvailablePurchases: async () => [],
-        requestPurchase: async () => { throw new Error('IAP not available'); },
-        requestSubscription: async () => { throw new Error('IAP not available'); },
-        finishTransaction: async () => { },
-        purchaseUpdatedListener: () => ({ remove: () => { } }),
-        purchaseErrorListener: () => ({ remove: () => { } }),
-    };
-}
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Placeholder Product ID - Replace with real one from Play Console
+// react-native-iap v14 usa uma API completamente diferente da v12/v13:
+// - getProducts/getSubscriptions → fetchProducts({ skus, type: 'subs' })
+// - requestSubscription({ sku }) → requestPurchase({ request: { google: { skus, subscriptionOffers } }, type: 'subs' })
+// - purchase.transactionReceipt → purchase.purchaseState === 'purchased' ou purchase.purchaseToken
+import * as RNIap from 'react-native-iap';
+
 const SUBSCRIPTION_SKUS = Platform.select({
     ios: ['ion_premium_monthly', 'ion_premium_yearly'],
     android: ['ion_premium_monthly', 'ion_premium_yearly'],
@@ -31,11 +16,10 @@ const SUBSCRIPTION_SKUS = Platform.select({
 interface SubscriptionContextType {
     isSubscribed: boolean;
     isLoading: boolean;
-    products: any[]; // Using any to avoid type mismatches
+    products: any[];
     requestSubscription: (sku: string) => Promise<void>;
     restorePurchases: () => Promise<void>;
-    checkSubscriptionStatus: () => Promise<void>;
-    simulateSubscription: (status: boolean) => Promise<void>;
+    checkSubscriptionStatus: () => Promise<boolean | null>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -45,25 +29,68 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const [products, setProducts] = useState<any[]>([]);
 
+    // Setup purchase event listeners ANTES do initConnection
     useEffect(() => {
+        let purchaseUpdateSubscription: any = null;
+        let purchaseErrorSubscription: any = null;
+
+        try {
+            purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(
+                async (purchase: any) => {
+                    __DEV__ && console.log('[IAP] Purchase updated:', purchase?.productId, 'state:', purchase?.purchaseState);
+
+                    // v14: usa purchaseState ou purchaseToken (não mais transactionReceipt)
+                    const isPurchased = purchase?.purchaseState === 'purchased' || !!purchase?.purchaseToken;
+
+                    if (isPurchased) {
+                        try {
+                            // Finalizar transação para evitar re-entrega
+                            await RNIap.finishTransaction({ purchase, isConsumable: false });
+                        } catch (finishErr) {
+                            console.warn('[IAP] finishTransaction error (non-fatal):', finishErr);
+                        }
+                        setIsSubscribed(true);
+                        await AsyncStorage.setItem('isSubscribed', 'true');
+                        __DEV__ && console.log('[IAP] Subscription activated!');
+                    }
+                }
+            );
+
+            purchaseErrorSubscription = RNIap.purchaseErrorListener(
+                (error: any) => {
+                    __DEV__ && console.warn('[IAP] Purchase error:', error?.code, error?.message);
+                    // Ignorar cancelamento do usuário (não é um erro real)
+                    if (error?.code !== 'E_USER_CANCELLED' && error?.code !== 'user-cancelled') {
+                        Alert.alert('Erro na compra', 'Ocorreu um erro ao processar o pagamento.');
+                    }
+                }
+            );
+        } catch (listenerErr) {
+            console.warn('[IAP] Failed to setup listeners:', listenerErr);
+        }
+
+        // Iniciar conexão IAP
         initIAP();
 
-        // Cleanup on unmount
         return () => {
-            RNIap.endConnection();
+            purchaseUpdateSubscription?.remove();
+            purchaseErrorSubscription?.remove();
+            RNIap.endConnection().catch(() => { });
         };
     }, []);
 
     const initIAP = async () => {
         try {
-            const connect = await RNIap.initConnection();
-            console.log('IAP Connected:', connect);
+            await RNIap.initConnection();
+            __DEV__ && console.log('[IAP] Connection established');
 
-            await loadProducts();
-            await checkSubscriptionStatus();
-
+            // Carregar produtos e verificar status em paralelo para performance
+            await Promise.all([
+                loadProducts(),
+                checkSubscriptionStatus(),
+            ]);
         } catch (err) {
-            console.warn('IAP Init Error:', err);
+            console.warn('[IAP] Init Error:', err);
         } finally {
             setIsLoading(false);
         }
@@ -71,57 +98,55 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     const loadProducts = async () => {
         try {
-            // Trying generic getProducts or getSubscriptions wrapped in any
-            // @ts-ignore
-            const items = await RNIap.getProducts({ skus: SUBSCRIPTION_SKUS });
-            console.log('IAP Products loaded:', items);
-            setProducts(items);
+            // v14 API: fetchProducts substitui getProducts e getSubscriptions
+            const items = await RNIap.fetchProducts({
+                skus: SUBSCRIPTION_SKUS,
+                type: 'subs',
+            });
+            __DEV__ && console.log('[IAP] Products loaded:', items?.length);
+            setProducts(items || []);
         } catch (err) {
-            console.warn('IAP Load Products Error (retrying with getSubscriptions):', err);
-            try {
-                // @ts-ignore
-                const items = await RNIap.getSubscriptions({ skus: SUBSCRIPTION_SKUS });
-                setProducts(items);
-            } catch (subErr) {
-                console.warn('IAP Subscriptions Load Failed:', subErr);
-            }
+            console.warn('[IAP] Load products error:', err);
         }
     };
 
-    const checkSubscriptionStatus = async () => {
+    // Retorna true se assinatura válida, false se não, null se erro/cache
+    const checkSubscriptionStatus = async (): Promise<boolean | null> => {
         try {
-            console.log('Checking subscription status...');
+            __DEV__ && console.log('[IAP] Checking subscription status...');
 
-            // 1. Check cached status first for speed
+            // 1. Cache primeiro para UI rápida
             const cachedStatus = await AsyncStorage.getItem('isSubscribed');
             if (cachedStatus === 'true') {
                 setIsSubscribed(true);
             }
 
-            // 2. Mock check for implementation
-            const mockStatus = await AsyncStorage.getItem('mock_isSubscribed');
-            if (mockStatus === 'true') {
-                setIsSubscribed(true);
-                return;
+            // 2. Verificar na loja (try-catch separado para preservar cache em caso de erro)
+            let purchases: any[] = [];
+            try {
+                purchases = await RNIap.getAvailablePurchases();
+                __DEV__ && console.log('[IAP] Available purchases:', purchases?.length);
+            } catch (storeErr) {
+                console.warn('[IAP] Store unavailable, keeping cached status:', storeErr);
+                return null; // Mantém valor do cache
             }
 
-            // 3. Verify with Store
-            const purchases = await RNIap.getAvailablePurchases();
-            console.log('Available purchases:', purchases);
-
-            let validSubscription = false;
-
-            purchases.forEach((purchase: any) => {
-                if (SUBSCRIPTION_SKUS.includes(purchase.productId)) {
-                    validSubscription = true;
-                }
-            });
+            // v14: verificar productId, purchaseState e isSuspended para confirmar assinatura ativa
+            const validSubscription = purchases.some((purchase: any) =>
+                SUBSCRIPTION_SKUS.includes(purchase.productId) &&
+                !purchase.isSuspendedAndroid && // Excluir se pagamento falhou
+                (purchase.purchaseState === 'purchased' || purchase.purchaseState === undefined)
+                // purchaseState undefined em algumas versões = compra ativa
+            );
 
             setIsSubscribed(validSubscription);
             await AsyncStorage.setItem('isSubscribed', String(validSubscription));
+            __DEV__ && console.log('[IAP] Subscription valid:', validSubscription);
+            return validSubscription;
 
         } catch (err) {
-            console.warn('Check Subscription Error:', err);
+            console.warn('[IAP] Check subscription error:', err);
+            return null;
         }
     };
 
@@ -129,25 +154,74 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         try {
             setIsLoading(true);
 
-            // MOCK MODE for Emulator or if no products
             if (products.length === 0) {
-                console.log('No products found (Emulator?), using MOCK purchase');
-                await simulateSubscription(true);
-                Alert.alert('Modo de Teste', 'Assinatura simulada com sucesso!');
+                Alert.alert(
+                    'Produtos Indisponíveis',
+                    'Não foi possível carregar os planos. Verifique sua conexão e tente novamente.',
+                );
+                return;
+            }
+
+            // Encontrar o produto pelo SKU
+            const product = products.find(
+                (p: any) => p.id === sku || p.productId === sku
+            );
+
+            if (!product) {
+                Alert.alert(
+                    'Produto não encontrado',
+                    'O plano selecionado não está disponível. Tente novamente.',
+                );
                 return;
             }
 
             if (Platform.OS === 'ios') {
-                // @ts-ignore
-                await RNIap.requestPurchase({ sku });
+                // v14 iOS: requestPurchase com request.apple.sku
+                await RNIap.requestPurchase({
+                    request: {
+                        apple: { sku },
+                    },
+                    type: 'subs',
+                } as any);
             } else {
-                // @ts-ignore
-                await RNIap.requestSubscription({ sku });
+                // v14 Android: OBRIGATÓRIO passar subscriptionOffers com offerToken
+                const androidProduct = product as any;
+                const offers: any[] = androidProduct?.subscriptionOfferDetailsAndroid || [];
+
+                if (offers.length === 0) {
+                    Alert.alert(
+                        'Ofertas Indisponíveis',
+                        'Não foi possível carregar as ofertas de assinatura. Tente novamente em alguns instantes.',
+                    );
+                    return;
+                }
+
+                // Usar todas as ofertas disponíveis (a primeira geralmente é a base/padrão)
+                const subscriptionOffers = offers.map((offer: any) => ({
+                    sku,
+                    offerToken: offer.offerToken,
+                }));
+
+                await RNIap.requestPurchase({
+                    request: {
+                        google: {
+                            skus: [sku],
+                            subscriptionOffers,
+                        },
+                    },
+                    type: 'subs',
+                } as any);
             }
 
         } catch (err: any) {
-            console.warn('Purchase Error:', err);
-            Alert.alert('Erro na assinatura', err.message || 'Não foi possível completar a assinatura.');
+            __DEV__ && console.warn('[IAP] requestSubscription error:', err?.code, err?.message);
+            // Não mostrar erro se usuário cancelou
+            if (err?.code !== 'E_USER_CANCELLED' && err?.code !== 'user-cancelled') {
+                Alert.alert(
+                    'Erro na assinatura',
+                    err?.message || 'Não foi possível completar a assinatura. Tente novamente.',
+                );
+            }
         } finally {
             setIsLoading(false);
         }
@@ -156,54 +230,19 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     const restorePurchases = async () => {
         try {
             setIsLoading(true);
-            await checkSubscriptionStatus();
-            Alert.alert('Restaurar', 'Compras restauradas com sucesso.');
+            const result = await checkSubscriptionStatus();
+            if (result === true) {
+                Alert.alert('Sucesso', 'Assinatura restaurada com sucesso!');
+            } else if (result === false) {
+                Alert.alert('Nenhuma assinatura', 'Nenhuma assinatura ativa encontrada para esta conta.');
+            }
+            // result === null → erro de loja, não mostrar nada (já logado internamente)
         } catch (err: any) {
-            Alert.alert('Erro', 'Falha ao restaurar compras.');
+            Alert.alert('Erro', 'Falha ao restaurar compras. Tente novamente.');
         } finally {
             setIsLoading(false);
         }
     };
-
-    const simulateSubscription = async (status: boolean) => {
-        setIsSubscribed(status);
-        await AsyncStorage.setItem('isSubscribed', String(status));
-        await AsyncStorage.setItem('mock_isSubscribed', String(status));
-        console.log('Simulated Subscription:', status);
-    };
-
-    // Setup Listeners
-    useEffect(() => {
-        const purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(
-            async (purchase: any) => {
-                const receipt = purchase.transactionReceipt;
-                if (receipt) {
-                    console.log('Purchase successful!', purchase);
-                    // Tell the store that we have delivered what has been paid for.
-                    await RNIap.finishTransaction({ purchase, isConsumable: false });
-
-                    setIsSubscribed(true);
-                    await AsyncStorage.setItem('isSubscribed', 'true');
-                }
-            }
-        );
-
-        const purchaseErrorSubscription = RNIap.purchaseErrorListener(
-            (error: any) => {
-                console.warn('PurchaseErrorListener:', error);
-                Alert.alert('Erro na compra', 'Ocorreu um erro ao processar o pagamento.');
-            }
-        );
-
-        return () => {
-            if (purchaseUpdateSubscription) {
-                purchaseUpdateSubscription.remove();
-            }
-            if (purchaseErrorSubscription) {
-                purchaseErrorSubscription.remove();
-            }
-        }
-    }, []);
 
     return (
         <SubscriptionContext.Provider value={{
@@ -213,7 +252,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
             requestSubscription,
             restorePurchases,
             checkSubscriptionStatus,
-            simulateSubscription
         }}>
             {children}
         </SubscriptionContext.Provider>

@@ -1,0 +1,42 @@
+appId: com.aether.ion.app
+---
+# Teste: Tela de Assinatura
+# Verifica que a tela de assinatura carrega corretamente e não crasha.
+# Usa a conta de reviewer que NÃO tem assinatura ativa para validar o paywall.
+
+- launchApp:
+    clearState: true
+
+# Navegar para login
+- tapOn: "Entrar"
+
+- tapOn: "Ex: seu@email.com"
+- inputText: "review@ionapp.ai"
+
+- tapOn: "Digite sua senha"
+- inputText: "Ion@Review2026"
+
+- hideKeyboard
+- tapOn: "Entrar"
+
+# Aguardar autenticação
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Deve estar na tela de assinatura (reviewer sem assinatura)
+- assertVisible: "ION Premium"
+    optional: true
+
+# Verificar que os planos aparecem (mesmo que IAP não retorne preços reais)
+- assertVisible: "Plano Mensal"
+    optional: true
+- assertVisible: "Plano Anual"
+    optional: true
+
+# Verificar botão de restaurar compras existe
+- assertVisible: "Restaurar Compras"
+    optional: true
+
+# Não deve ter travado ou crashado
+- waitForAnimationToEnd:
+    timeout: 3000

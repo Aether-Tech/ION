@@ -1,0 +1,8 @@
+# Maestro Test Suite Configuration - ION App
+# Executar: maestro test .maestro/
+
+flows:
+  - .maestro/01_login_flow.yaml
+  - .maestro/02_register_flow.yaml
+  - .maestro/03_subscription_screen.yaml
+  - .maestro/04_navigation_stability.yaml

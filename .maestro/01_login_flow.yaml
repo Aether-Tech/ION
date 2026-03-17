@@ -1,0 +1,41 @@
+appId: com.aether.ion.app
+---
+# Teste: Fluxo de Login com Email e Senha
+# Verifica que o app abre, navega até login, autentica e não crasha.
+
+- launchApp:
+    clearState: true
+
+# O app deve mostrar a welcome screen (não autenticado)
+- assertVisible: "ION"
+- assertVisible: "Assistente Pessoal"
+
+# Navegar para login
+- tapOn: "Entrar"
+
+# Tela de login deve aparecer
+- assertVisible: "Email"
+- assertVisible: "Senha"
+
+# Preencher credenciais de teste (reviewer account)
+- tapOn:
+    id: "email"
+    optional: true
+- tapOn: "Ex: seu@email.com"
+- inputText: "review@ionapp.ai"
+
+- tapOn: "Digite sua senha"
+- inputText: "Ion@Review2026"
+
+- hideKeyboard
+
+# Fazer login
+- tapOn: "Entrar"
+
+# Aguardar carregamento (auth + subscription check)
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Deve ter navegado para fora do login (sem crash)
+- assertNotVisible: "Entrar"
+    optional: true

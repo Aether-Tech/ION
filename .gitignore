@@ -27,4 +27,9 @@ web-build/
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
 
+# Android keys
+android/key.properties
+android/*.jks

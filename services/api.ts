@@ -10,11 +10,12 @@ const API_BASE_URL = 'https://ion.goaether.com.br/api';
 // Remove whitespace and potential non-visible characters/newlines
 const API_KEY = (process.env.EXPO_PUBLIC_API_KEY || '').replace(/[\s\n\r\t\uFEFF\xA0]+/g, '');
 
-console.log('OpenAI API Configuration:', {
-  hasKey: !!API_KEY,
-  keyLength: API_KEY ? API_KEY.length : 0,
-  keyPrefix: API_KEY ? `${API_KEY.substring(0, 15)}...${API_KEY.substring(API_KEY.length - 5)}` : 'N/A'
-});
+if (__DEV__) {
+  console.log('OpenAI API Configuration:', {
+    hasKey: !!API_KEY,
+    keyLength: API_KEY ? API_KEY.length : 0,
+  });
+}
 
 interface ApiResponse<T> {
   success: boolean;
