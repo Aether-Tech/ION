@@ -36,7 +36,8 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            router.replace('/login');
+            // Não navegar aqui — _layout.tsx detecta user=null e redireciona automaticamente.
+            // Chamar router.replace() aqui + o guard de _layout.tsx gera dupla navegação e crash no Android.
           },
         },
       ]

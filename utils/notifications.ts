@@ -4,12 +4,7 @@ const WEBHOOK_URL = 'https://n8n.goaether.xyz/webhook/a90d5230-303e-4814-aa31-12
 
 let Notifications: any;
 try {
-  if (Platform.OS !== 'android') {
-    // Only require expo-notifications on non-android (or handled by managed workflow?)
-    // Actually, expo-notifications works on both. The original code had a check.
-    // Let's assume it's safe to require if likely managed.
-    Notifications = require('expo-notifications');
-  }
+  Notifications = require('expo-notifications');
 } catch (e) {
   console.warn('Notifications module not available:', e);
 }

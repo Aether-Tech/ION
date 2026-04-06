@@ -116,6 +116,9 @@ const iconMap: { [key: string]: any } = {
   'send': SentIcon,
   'arrow-right-01': ArrowRight01Icon,
   'sparkles': SparklesIcon || StarIcon || BulbIcon, // Tenta Sparkles, senão Star, senão Bulb
+  'card-outline': Wallet02Icon, // Ícone de cartão/pagamento
+  'link-outline': ArrowRight01Icon, // Ícone de link externo
+  'logo-whatsapp': SmartPhone01Icon, // WhatsApp (fallback para SmartPhone)
 };
 
 // Componente que renderiza ícones do Hugeicons usando o pacote oficial gratuito

@@ -2,8 +2,6 @@ import { Tabs } from 'expo-router';
 import { HugeIcon } from '../../components/HugeIcon';
 import { useAuth } from '../../contexts/AuthContext';
 import { View, ActivityIndicator, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppColors } from '../../hooks/useAppColors';
@@ -106,15 +104,11 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 export default function TabsLayout() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  const { loading } = useAuth();
   const Colors = useAppColors();
-  
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/login');
-    }
-  }, [user, loading]);
+
+  // Não navegar aqui quando user=null — o RootLayoutNav em _layout.tsx já cuida disso.
+  // Ter dois lugares chamando router.replace() ao mesmo tempo causa crash no Android.
 
   if (loading) {
     return (

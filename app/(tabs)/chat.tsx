@@ -629,7 +629,7 @@ export default function ChatScreen() {
           );
         },
         // userId
-        user.usuarioId
+        user?.usuarioId
       );
 
       console.log('API Response:', JSON.stringify(response, null, 2));

@@ -53,7 +53,7 @@ export default function SubscriptionScreen() {
     const handleLogout = async () => {
         try {
             await logout();
-            router.replace('/login');
+            // Não navegar aqui — _layout.tsx detecta user=null e redireciona automaticamente.
         } catch (error) {
             console.error('Logout error:', error);
         }
