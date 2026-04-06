@@ -17,7 +17,11 @@
     },
     "production": {
       "autoIncrement": true,
-      "distribution": "store"
+      "distribution": "store",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://vigohpsxxtxybqfotrkl.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpZ29ocHN4eHR4eWJxZm90cmtsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3NTM0NTEsImV4cCI6MjA2ODMyOTQ1MX0.wRQTKONQUhtkdiq-hFhY15YMR40Ca8x1cC28Rz51SaQ"
+      }
     }
   },
   "submit": {

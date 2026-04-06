@@ -95,6 +95,7 @@ const iconMap: { [key: string]: any } = {
   'person-outline': UserIcon,
   'mail-outline': Mail01Icon,
   'lock-closed-outline': LockIcon,
+  'lock-closed': LockIcon,
   'call-outline': SmartPhone01Icon,
   'pencil-outline': Edit01Icon,
   'settings-outline': Settings01Icon,

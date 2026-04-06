@@ -1,9 +1,19 @@
-import { supabase, Usuario, Transacao, CategoriaTransacao, ToDo, Lembrete, ItemCompra, Caixinha } from './supabase';
+import { supabase, Usuario, Transacao, CategoriaTransacao, ToDo, Lembrete, ItemCompra, Caixinha, isSupabaseConfigured } from './supabase';
+
+const ensureSupabaseConfigured = () => {
+  if (!isSupabaseConfigured) {
+    console.error('Supabase is not configured for this build.');
+    return false;
+  }
+
+  return true;
+};
 
 // Serviços para Usuarios
 export const usuariosService = {
   // Buscar usuário por celular
   getByCelular: async (celular?: string | null): Promise<Usuario | null> => {
+    if (!ensureSupabaseConfigured()) return null;
     if (!celular) return null;
     try {
       const { data, error } = await supabase
@@ -30,6 +40,7 @@ export const usuariosService = {
 
   // Buscar usuário por email
   getByEmail: async (email: string): Promise<Usuario | null> => {
+    if (!ensureSupabaseConfigured()) return null;
     if (!email) return null;
     try {
       const { data, error, status, statusText } = await supabase
@@ -53,6 +64,7 @@ export const usuariosService = {
 
   // Buscar usuário por ID
   getById: async (id: number): Promise<Usuario | null> => {
+    if (!ensureSupabaseConfigured()) return null;
     const { data, error } = await supabase
       .from('usuarios')
       .select('*')
@@ -68,6 +80,7 @@ export const usuariosService = {
 
   // Criar novo usuário
   create: async (usuario: Omit<Usuario, 'id' | 'created_at'>): Promise<Usuario | null> => {
+    if (!ensureSupabaseConfigured()) return null;
     __DEV__ && console.log('Creating user with data:', JSON.stringify(usuario, null, 2));
     const { data, error, status, statusText } = await supabase
       .from('usuarios')
@@ -86,6 +99,7 @@ export const usuariosService = {
 
   // Atualizar usuário
   update: async (id: number, updates: Partial<Usuario>): Promise<Usuario | null> => {
+    if (!ensureSupabaseConfigured()) return null;
     const { data, error } = await supabase
       .from('usuarios')
       .update(updates)
@@ -630,4 +644,3 @@ export const caixinhasService = {
     return true;
   },
 };
-

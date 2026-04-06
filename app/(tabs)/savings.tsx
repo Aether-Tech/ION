@@ -45,7 +45,7 @@ interface InvestmentType {
   rendimentoAnual: number; // em porcentagem (ex: 10.5 = 10.5% ao ano)
   risco: 'Baixo' | 'Médio' | 'Alto';
   descricao: string;
-  icone: keyof typeof Ionicons.glyphMap;
+  icone: string;
 }
 
 export default function SavingsScreen() {
@@ -146,7 +146,7 @@ export default function SavingsScreen() {
       rendimentoAnual: 6.17, // CDI médio aproximado
       risco: 'Baixo',
       descricao: 'Seguro e garantido pelo FGC',
-      icone: 'shield-checkmark',
+      icone: 'shield-checkmark-outline',
     },
     {
       id: 'cdb',
@@ -154,7 +154,7 @@ export default function SavingsScreen() {
       rendimentoAnual: 10.5,
       risco: 'Baixo',
       descricao: 'Certificado de Depósito Bancário',
-      icone: 'document-text',
+      icone: 'document-text-outline',
     },
     {
       id: 'tesouro',
@@ -170,7 +170,7 @@ export default function SavingsScreen() {
       rendimentoAnual: 9.5,
       risco: 'Baixo',
       descricao: 'Letras de Crédito Imobiliário/Agronegócio',
-      icone: 'home',
+      icone: 'save',
     },
     {
       id: 'fundos',
@@ -178,7 +178,7 @@ export default function SavingsScreen() {
       rendimentoAnual: 12.0,
       risco: 'Médio',
       descricao: 'Fundos de investimento conservadores',
-      icone: 'pie-chart',
+      icone: 'stats-chart',
     },
     {
       id: 'acoes',
@@ -186,7 +186,7 @@ export default function SavingsScreen() {
       rendimentoAnual: 15.0,
       risco: 'Alto',
       descricao: 'Investimento em ações da bolsa',
-      icone: 'bar-chart',
+      icone: 'stats-chart',
     },
     {
       id: 'fiis',
@@ -194,7 +194,7 @@ export default function SavingsScreen() {
       rendimentoAnual: 13.5,
       risco: 'Médio',
       descricao: 'Fundos de investimento imobiliário',
-      icone: 'business',
+      icone: 'wallet-outline',
     },
     {
       id: 'cripto',
@@ -202,7 +202,7 @@ export default function SavingsScreen() {
       rendimentoAnual: 20.0,
       risco: 'Alto',
       descricao: 'Investimento em criptomoedas',
-      icone: 'diamond',
+      icone: 'sparkles',
     },
   ];
 
@@ -1901,4 +1901,3 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     },
   });
 }
-

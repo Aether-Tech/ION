@@ -168,15 +168,20 @@ export default function EditProfileScreen() {
       console.log('📸 Upload response:', { uploadData, uploadError });
 
       if (uploadError) {
+        const uploadErrorStatus =
+          (uploadError as any)?.statusCode ??
+          (uploadError as any)?.status ??
+          null;
+
         console.error('📸 Erro no upload:', uploadError);
         console.error('📸 Erro completo:', JSON.stringify(uploadError, null, 2));
-        console.error('📸 Status code:', uploadError.statusCode);
+        console.error('📸 Status code:', uploadErrorStatus);
         console.error('📸 Error message:', uploadError.message);
         
         // Verificar tipo de erro
         if (uploadError.message?.includes('Bucket not found') || 
             uploadError.message?.includes('not found') ||
-            uploadError.statusCode === 404) {
+            uploadErrorStatus === 404) {
           throw new Error(
             `❌ O bucket "perfis" não foi encontrado.\n\n` +
             `Verifique se:\n` +
@@ -190,7 +195,7 @@ export default function EditProfileScreen() {
             uploadError.message?.includes('policy') ||
             uploadError.message?.includes('permission') ||
             uploadError.message?.includes('row-level security') ||
-            uploadError.statusCode === 403) {
+            uploadErrorStatus === 403) {
           throw new Error(
             `❌ Erro de permissão ao fazer upload.\n\n` +
             `As políticas de segurança do bucket precisam ser configuradas:\n\n` +
@@ -205,7 +210,7 @@ export default function EditProfileScreen() {
         }
         
         // Verificar se é erro de autenticação
-        if (uploadError.statusCode === 401) {
+        if (uploadErrorStatus === 401) {
           throw new Error(
             `❌ Erro de autenticação.\n\n` +
             `Verifique se as credenciais do Supabase estão configuradas corretamente.`
@@ -215,7 +220,7 @@ export default function EditProfileScreen() {
         throw new Error(
           `❌ Erro ao fazer upload\n\n` +
           `Mensagem: ${uploadError.message || 'Erro desconhecido'}\n` +
-          `Código: ${uploadError.statusCode || 'N/A'}\n\n` +
+          `Código: ${uploadErrorStatus || 'N/A'}\n\n` +
           `Verifique os logs do console para mais detalhes.`
         );
       }
@@ -690,4 +695,3 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     },
   });
 }
-

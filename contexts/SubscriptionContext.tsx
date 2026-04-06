@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from './AuthContext';
 
 // react-native-iap v14 usa uma API completamente diferente da v12/v13:
 // - getProducts/getSubscriptions → fetchProducts({ skus, type: 'subs' })
@@ -25,66 +26,93 @@ interface SubscriptionContextType {
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
+    const { user, loading: authLoading } = useAuth();
     const [isSubscribed, setIsSubscribed] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [products, setProducts] = useState<any[]>([]);
+    const isConnectedRef = useRef(false);
 
     // Setup purchase event listeners ANTES do initConnection
     useEffect(() => {
         let purchaseUpdateSubscription: any = null;
         let purchaseErrorSubscription: any = null;
+        let isMounted = true;
 
-        try {
-            purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(
-                async (purchase: any) => {
-                    __DEV__ && console.log('[IAP] Purchase updated:', purchase?.productId, 'state:', purchase?.purchaseState);
+        const bootstrap = async () => {
+            const cachedStatus = await AsyncStorage.getItem('isSubscribed');
+            if (isMounted && cachedStatus === 'true') {
+                setIsSubscribed(true);
+            }
 
-                    // v14: usa purchaseState ou purchaseToken (não mais transactionReceipt)
-                    const isPurchased = purchase?.purchaseState === 'purchased' || !!purchase?.purchaseToken;
+            if (authLoading) {
+                return;
+            }
 
-                    if (isPurchased) {
-                        try {
-                            // Finalizar transação para evitar re-entrega
-                            await RNIap.finishTransaction({ purchase, isConsumable: false });
-                        } catch (finishErr) {
-                            console.warn('[IAP] finishTransaction error (non-fatal):', finishErr);
+            // Não inicializar billing no boot para usuário deslogado.
+            if (!user) {
+                if (isMounted) {
+                    setProducts([]);
+                    setIsLoading(false);
+                }
+                return;
+            }
+
+            try {
+                purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(
+                    async (purchase: any) => {
+                        __DEV__ && console.log('[IAP] Purchase updated:', purchase?.productId, 'state:', purchase?.purchaseState);
+
+                        const isPurchased = purchase?.purchaseState === 'purchased' || !!purchase?.purchaseToken;
+
+                        if (isPurchased) {
+                            try {
+                                await RNIap.finishTransaction({ purchase, isConsumable: false });
+                            } catch (finishErr) {
+                                console.warn('[IAP] finishTransaction error (non-fatal):', finishErr);
+                            }
+                            if (isMounted) {
+                                setIsSubscribed(true);
+                            }
+                            await AsyncStorage.setItem('isSubscribed', 'true');
+                            __DEV__ && console.log('[IAP] Subscription activated!');
                         }
-                        setIsSubscribed(true);
-                        await AsyncStorage.setItem('isSubscribed', 'true');
-                        __DEV__ && console.log('[IAP] Subscription activated!');
                     }
-                }
-            );
+                );
 
-            purchaseErrorSubscription = RNIap.purchaseErrorListener(
-                (error: any) => {
-                    __DEV__ && console.warn('[IAP] Purchase error:', error?.code, error?.message);
-                    // Ignorar cancelamento do usuário (não é um erro real)
-                    if (error?.code !== 'E_USER_CANCELLED' && error?.code !== 'user-cancelled') {
-                        Alert.alert('Erro na compra', 'Ocorreu um erro ao processar o pagamento.');
+                purchaseErrorSubscription = RNIap.purchaseErrorListener(
+                    (error: any) => {
+                        __DEV__ && console.warn('[IAP] Purchase error:', error?.code, error?.message);
+                        if (error?.code !== 'E_USER_CANCELLED' && error?.code !== 'user-cancelled') {
+                            Alert.alert('Erro na compra', 'Ocorreu um erro ao processar o pagamento.');
+                        }
                     }
-                }
-            );
-        } catch (listenerErr) {
-            console.warn('[IAP] Failed to setup listeners:', listenerErr);
-        }
+                );
+            } catch (listenerErr) {
+                console.warn('[IAP] Failed to setup listeners:', listenerErr);
+            }
 
-        // Iniciar conexão IAP
-        initIAP();
+            await initIAP(isMounted);
+        };
+
+        void bootstrap();
 
         return () => {
+            isMounted = false;
             purchaseUpdateSubscription?.remove();
             purchaseErrorSubscription?.remove();
-            RNIap.endConnection().catch(() => { });
+            if (isConnectedRef.current) {
+                RNIap.endConnection().catch(() => { });
+                isConnectedRef.current = false;
+            }
         };
-    }, []);
+    }, [authLoading, user]);
 
-    const initIAP = async () => {
+    const initIAP = async (isMounted = true) => {
         try {
             await RNIap.initConnection();
+            isConnectedRef.current = true;
             __DEV__ && console.log('[IAP] Connection established');
 
-            // Carregar produtos e verificar status em paralelo para performance
             await Promise.all([
                 loadProducts(),
                 checkSubscriptionStatus(),
@@ -92,7 +120,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         } catch (err) {
             console.warn('[IAP] Init Error:', err);
         } finally {
-            setIsLoading(false);
+            if (isMounted) {
+                setIsLoading(false);
+            }
         }
     };
 

@@ -102,7 +102,7 @@ export default function ProfileScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.headerButton}>
+          <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
             <HugeIcon name="arrow-back" size={28} color={Colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Perfil & Configurações</Text>

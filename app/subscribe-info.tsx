@@ -143,7 +143,7 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
       paddingHorizontal: 16,
       borderWidth: 1,
       borderColor: Colors.glassBorder,
-      backgroundColor: Colors.surface,
+      backgroundColor: Colors.glassBackground,
       marginBottom: 16,
     },
     primaryButton: {
@@ -162,4 +162,3 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     },
   });
 }
-

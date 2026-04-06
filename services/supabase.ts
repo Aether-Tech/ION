@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 // Você pode criar um arquivo .env ou usar variáveis de ambiente
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 if (__DEV__) {
   console.log('Supabase config', {
@@ -12,14 +13,23 @@ if (__DEV__) {
   });
 }
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+if (!isSupabaseConfigured) {
   console.warn('⚠️ Supabase credentials not configured. Please set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY');
 }
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Evita crash no boot quando a build é gerada sem env vars injetadas.
+// Nessa situação o app continua abrindo e os serviços retornam erro controlado.
+const safeSupabaseUrl = SUPABASE_URL || 'https://placeholder.invalid';
+const safeSupabaseAnonKey = SUPABASE_ANON_KEY || 'missing-anon-key';
+
+export const supabase = createClient(safeSupabaseUrl, safeSupabaseAnonKey);
 
 // Testar conexão com Supabase
 const testSupabaseConnection = async () => {
+  if (!isSupabaseConfigured) {
+    return;
+  }
+
   try {
     const { data, error, status } = await supabase.from('usuarios').select('count').limit(1);
     if (error) {
@@ -36,7 +46,7 @@ const testSupabaseConnection = async () => {
   }
 };
 
-testSupabaseConnection();
+void testSupabaseConnection();
 
 // Tipos baseados nas tabelas do banco de dados
 export interface Usuario {
@@ -113,4 +123,3 @@ export interface Caixinha {
   categoria: string | null;
   usuario_id: number | null;
 }
-

@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   Keyboard,
   TouchableWithoutFeedback,
-  Clipboard,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HugeIcon } from '../../components/HugeIcon';
@@ -36,38 +36,38 @@ interface ShoppingItem {
 type ShoppingCategory = 'Alimentos' | 'Limpeza' | 'Higiene' | 'Outros' | string;
 
 // Mapeamento de ícones para categorias
-const getCategoryIcon = (category: string): keyof typeof Ionicons.glyphMap => {
+const getCategoryIcon = (category: string): string => {
   const categoryLower = category.toLowerCase();
-  
+
   // Categorias padrão
   if (categoryLower === 'alimentos') {
-    return 'restaurant';
+    return 'cart';
   }
   if (categoryLower === 'limpeza') {
     return 'sparkles';
   }
   if (categoryLower === 'higiene') {
-    return 'water';
+    return 'save';
   }
   if (categoryLower === 'outros') {
-    return 'cube';
+    return 'list';
   }
-  
+
   // Categorias customizadas - tentar detectar pelo nome
   if (categoryLower.includes('alimento') || categoryLower.includes('comida') || categoryLower.includes('bebida')) {
-    return 'restaurant';
+    return 'cart';
   }
   if (categoryLower.includes('limpeza') || categoryLower.includes('limpar') || categoryLower.includes('detergente')) {
     return 'sparkles';
   }
   if (categoryLower.includes('higiene') || categoryLower.includes('banho') || categoryLower.includes('sabonete')) {
-    return 'water';
+    return 'save';
   }
   if (categoryLower.includes('padaria') || categoryLower.includes('pão')) {
-    return 'basket';
+    return 'list';
   }
-  
-  return 'cube';
+
+  return 'list';
 };
 
 export default function ShoppingScreen() {
@@ -636,7 +636,7 @@ export default function ShoppingScreen() {
     }
   };
 
-  const copyListToClipboard = () => {
+  const copyListToClipboard = async () => {
     // Filtrar apenas itens pendentes (não comprados)
     const pendingItems = sortedItems.filter(item => !item.completed);
 
@@ -680,17 +680,12 @@ export default function ShoppingScreen() {
         });
       });
 
-      // Copiar para o clipboard
-      Clipboard.setString(listText);
-
-      Alert.alert(
-        '✅ Lista Copiada!',
-        'A lista de compras foi copiada para a área de transferência. Você pode colar no WhatsApp agora!',
-        [{ text: 'OK' }]
-      );
+      await Share.share({
+        message: listText,
+      });
     } catch (error) {
       console.error('Error copying list:', error);
-      Alert.alert('Erro', 'Não foi possível copiar a lista');
+      Alert.alert('Erro', 'Não foi possível compartilhar a lista');
     }
   };
 
@@ -1613,4 +1608,3 @@ function getStyles(Colors: ReturnType<typeof useAppColors>) {
     },
   });
 }
-

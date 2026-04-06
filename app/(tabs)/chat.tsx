@@ -125,7 +125,7 @@ export default function ChatScreen() {
   }, []);
 
   const sendMessage = async () => {
-    if (!inputText.trim() || !user?.phoneNumber) return;
+    if (!inputText.trim()) return;
     await sendMessageWithText(inputText);
   };
 
@@ -402,8 +402,8 @@ export default function ChatScreen() {
   };
 
   const handleSendImage = async () => {
-    if (!selectedImage || !user?.phoneNumber) {
-      Alert.alert('Erro', 'Usuário não autenticado ou imagem não selecionada.');
+    if (!selectedImage) {
+      Alert.alert('Erro', 'Nenhuma imagem selecionada.');
       return;
     }
 
@@ -437,8 +437,9 @@ export default function ChatScreen() {
     setStreamingMessageId(aiMessageId);
 
     try {
+      const uid = user?.phoneNumber || user?.usuario?.email || user?.firebaseUser?.uid || 'unknown';
       const response = await chatService.sendMessageWithImage(
-        user.phoneNumber,
+        uid,
         messageText,
         imageUri,
         // onStream
@@ -506,8 +507,8 @@ export default function ChatScreen() {
   };
 
   const handleSendDocument = async () => {
-    if (!selectedDocument || !user?.phoneNumber) {
-      Alert.alert('Erro', 'Usuário não autenticado ou documento não selecionado.');
+    if (!selectedDocument) {
+      Alert.alert('Erro', 'Nenhum documento selecionado.');
       return;
     }
 
@@ -529,8 +530,9 @@ export default function ChatScreen() {
     setLoading(true);
 
     try {
+      const uidDoc = user?.phoneNumber || user?.usuario?.email || user?.firebaseUser?.uid || 'unknown';
       const response = await chatService.sendMessageWithDocument(
-        user.phoneNumber,
+        uidDoc,
         messageText,
         selectedDocument.uri,
         selectedDocument.name,
@@ -568,7 +570,8 @@ export default function ChatScreen() {
   };
 
   const sendMessageWithText = async (text: string) => {
-    if (!text.trim() || !user?.phoneNumber) return;
+    if (!text.trim()) return;
+    const userIdentifier = user?.phoneNumber || user?.usuario?.email || user?.firebaseUser?.uid || 'unknown';
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -597,7 +600,7 @@ export default function ChatScreen() {
 
     try {
       const response = await chatService.sendMessage(
-        user.phoneNumber,
+        userIdentifier,
         messageText,
         // onStream
         (chunk: string, fullText: string) => {

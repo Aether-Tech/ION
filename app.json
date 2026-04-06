@@ -24,7 +24,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.aether.ion.app",
-      "versionCode": 16,
+      "versionCode": 26,
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
@@ -75,6 +75,7 @@
       "eas": {
         "projectId": "8bc85d34-162b-4b6f-bcca-88642b5de117"
       }
-    }
+    },
+    "owner": "heitorwestphal"
   }
 }
