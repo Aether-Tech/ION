@@ -47,11 +47,16 @@ export default function RegisterScreen() {
     }
   }, [success, user, authLoading, router]);
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  });
+  const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+  const [request, response, promptAsync] = Google.useAuthRequest(
+    googleAndroidClientId || Platform.OS !== 'android'
+      ? {
+          iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+          androidClientId: googleAndroidClientId,
+          webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+        }
+      : null
+  );
 
   useEffect(() => {
     if (response?.type === 'success') {
@@ -329,7 +334,13 @@ export default function RegisterScreen() {
             <View style={styles.socialButtonsContainer}>
               <TouchableOpacity
                 style={[styles.socialButton, styles.googleButton]}
-                onPress={() => promptAsync()}
+                onPress={() => {
+                  if (Platform.OS === 'android' && !googleAndroidClientId) {
+                    Alert.alert('Erro', 'Login com Google não está disponível neste momento');
+                    return;
+                  }
+                  promptAsync();
+                }}
                 disabled={loading || success}
               >
                 <Ionicons name="logo-google" size={24} color="#DB4437" />
